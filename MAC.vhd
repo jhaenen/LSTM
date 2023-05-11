@@ -23,29 +23,32 @@ library ieee;
 use ieee.STD_LOGIC_1164.ALL;
 
 -- Synthesis only
--- use ieee.fixed_pkg.all; 
+use ieee.fixed_pkg.all; 
 
 -- Simulation only
-library ieee_proposed;
-use ieee_proposed.fixed_pkg.all;
+-- library ieee_proposed;
+-- use ieee_proposed.fixed_pkg.all;
 
-use work.rrn_pkg.all;
+use work.rnn_pkg.all;
 
 entity MAC is
     port ( 
         clk         : in std_logic;
         rst         : in std_logic;
+        en          : in std_logic;
 
         data_in     : in data_t;
         weight_in   : in data_t;
 
-        data_out    : out data_t
+        data_out    : out acc_t
     );
 end MAC;
 
 architecture behav of MAC is
 
-    signal acc : data_t;
+    signal acc : acc_t;
+
+    signal output_buffer : acc_t;
 
 begin
 
@@ -57,12 +60,14 @@ begin
         if rst = '1' then
             acc <= (others => '0');
         elsif rising_edge(clk) then
-            mult := data_in * weight_in;
-            sum := acc + mult(data_t'high downto data_t'low);
-            acc <= sum(data_t'high downto data_t'low);
+            if en = '1' then
+                acc <=  resize(acc + (data_in * weight_in), acc_t'high, acc_t'low);
+
+                output_buffer <= acc;
+            end if;
         end if;
 
     end process;
     
-    data_out <= acc;
+    data_out <= output_buffer;
 end behav;
