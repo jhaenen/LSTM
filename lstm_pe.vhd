@@ -42,6 +42,13 @@ architecture behav of lstm_pe is
             y : out sigmoid_t
         );
     end component sigmoid_pwl;
+
+    component tanh_lut is
+        port (
+            x : in acc_t;
+            y : out tanh_t
+        );
+    end component tanh_lut;
     
     component MAC is
         port (
@@ -58,16 +65,18 @@ architecture behav of lstm_pe is
         );
     end component;
 
-    signal f_out : acc_t;
-    signal i_out : acc_t;
-    signal o_out : acc_t;
-    signal g_out : acc_t;
+    signal f_out  : acc_t;
+    signal i_out  : acc_t;
+    signal o_out  : acc_t;
+    signal g_out  : acc_t;
 
-    signal f_sig : sigmoid_t;
-    signal i_sig : sigmoid_t;
-    signal o_sig : sigmoid_t;
+    signal f_sig  : sigmoid_t;
+    signal i_sig  : sigmoid_t;
+    signal o_sig  : sigmoid_t;
+    signal g_tanh : tanh_t;
 
-    signal c_t : tanh_t;
+    signal c_t : data_t;
+    signal c_t_tanh : tanh_t;
 
     signal mod_reset : std_logic;
     signal mod_en    : std_logic;
@@ -84,9 +93,9 @@ begin
             if counter = INPUT_SIZE + HIDDEN_SIZE - 1 then
                 counter := 0;
 
-                c_t <= resize(to_sfixed(f_sig) * c_t + to_sfixed(i_sig) * g_out, c_t'high, c_t'low);
+                c_t <= resize(to_sfixed(f_sig) * c_t + to_sfixed(i_sig) * g_tanh, c_t'high, c_t'low);
 
-                hidden_out <= resize(to_sfixed(o_sig) * c_t, hidden_out'high, hidden_out'low);
+                hidden_out <= resize(to_sfixed(o_sig) * c_t_tanh, hidden_out'high, hidden_out'low);
 
                 mod_reset <= '1';
                 mod_en <= '0';
@@ -128,6 +137,19 @@ begin
         port map (
             x => o_out,
             y => o_sig
+        );
+
+    -- Tanh function
+    tanh_g : tanh_lut
+        port map (
+            x => g_out,
+            y => g_tanh
+        );
+
+    tanh_c : tanh_lut
+        port map (
+            x => resize(c_t, acc_t'high, acc_t'low),
+            y => c_t_tanh
         );
 
     -- Input gate
