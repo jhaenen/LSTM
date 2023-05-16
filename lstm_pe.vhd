@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 -- Synthesis only
 use ieee.fixed_pkg.all; 
@@ -9,11 +10,13 @@ use ieee.fixed_pkg.all;
 -- use ieee_proposed.float_pkg.all;
 
 use work.rnn_pkg.all;
+use work.util_pkg.all;
 
 entity lstm_pe is
     generic (
         INPUT_SIZE : natural := 5;
-        HIDDEN_SIZE : natural := 5
+        HIDDEN_SIZE : natural := 5;
+        ADDR_WIDTH : natural := 14
     );
     port (
         clk     : in std_logic;
@@ -25,6 +28,8 @@ entity lstm_pe is
         weight_g_in : in data_t;
         weight_f_in : in data_t;
         weight_o_in : in data_t;
+
+        weights_addr : out std_logic_vector(ADDR_WIDTH-1 downto 0);
 
         -- output
         hidden_out  : out data_t
@@ -101,6 +106,9 @@ begin
                 mod_en <= '0';
             else
                 counter := counter + 1;
+
+                -- Set address to the current counter value
+                weights_addr <= std_logic_vector(to_unsigned(counter, weights_addr'length));
 
                 mod_reset <= '0';
                 mod_en <= '1';
