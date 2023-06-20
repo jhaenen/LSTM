@@ -13,23 +13,18 @@ use work.rnn_pkg.all;
 use work.util_pkg.all;
 
 entity lstm_pe is
-    generic (
-        INPUT_SIZE : natural := 5;
-        HIDDEN_SIZE : natural := 5;
-        ADDR_WIDTH : natural := 14
-    );
     port (
         clk     : in std_logic;
         rst     : in std_logic;
         
+        pe_state    : in pe_state_slv_t;
+
         -- input
         data_in     : in data_t;
         weight_i_in : in data_t;
         weight_g_in : in data_t;
         weight_f_in : in data_t;
         weight_o_in : in data_t;
-
-        weights_addr : out std_logic_vector(ADDR_WIDTH-1 downto 0);
 
         -- output
         hidden_out  : out data_t
@@ -86,33 +81,34 @@ architecture behav of lstm_pe is
     signal mod_reset : std_logic;
     signal mod_en    : std_logic;
 
+    signal pe_state_int : pe_state_t;
 begin
+    pe_state_int <= to_pe_state(pe_state);
 
     process (clk, rst)
-        variable counter : natural := 0;
     begin
         if rst = '1' then
             mod_reset <= '1';
-            mod_en <= '0';
+            mod_en    <= '0';
         elsif rising_edge(clk) then
-            if counter = INPUT_SIZE + HIDDEN_SIZE - 1 then
-                counter := 0;
+            case pe_state_int is
+                when IDLE =>
+                    mod_en    <= '0';
+                    mod_reset <= '0';
+                when ACCUMULATE =>
+                    mod_reset <= '0';
+                    mod_en    <= '1';
+                when POST =>
+                    mod_reset <= '1';
+                    mod_en    <= '0';
 
-                c_t <= resize(to_sfixed(f_sig) * c_t + to_sfixed(i_sig) * g_tanh, c_t'high, c_t'low);
+                    c_t <= resize(to_sfixed(f_sig) * c_t + to_sfixed(i_sig) * g_tanh, c_t'high, c_t'low);
 
-                hidden_out <= resize(to_sfixed(o_sig) * c_t_tanh, hidden_out'high, hidden_out'low);
-
-                mod_reset <= '1';
-                mod_en <= '0';
-            else
-                counter := counter + 1;
-
-                -- Set address to the current counter value
-                weights_addr <= std_logic_vector(to_unsigned(counter, weights_addr'length));
-
-                mod_reset <= '0';
-                mod_en <= '1';
-            end if;
+                    hidden_out <= resize(to_sfixed(o_sig) * c_t_tanh, hidden_out'high, hidden_out'low);
+                when RESET =>
+                    mod_reset <= '1';
+                    mod_en    <= '0';
+            end case;
         end if;
     end process;
     
