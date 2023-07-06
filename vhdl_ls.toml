@@ -1,6 +1,8 @@
 [libraries]
 work.files = [
   '*.vhd',
+  'fixed/*.vhd',
+  'float/*.vhd',
   'fixed/test/*.vhd',
   'float/test/*.vhd',
 ]
