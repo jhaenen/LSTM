@@ -42,6 +42,8 @@ begin
         variable sign : std_logic;
         variable exponent : unsigned(7 downto 0);
         variable fraction : unsigned(6 downto 0);
+
+        variable temp_value : std_logic_vector(15 downto 0);
     begin
         if rising_edge(aclk) then
             -- If input is valid and all outputs are ready
@@ -53,7 +55,8 @@ begin
 
                 if exponent >= x"81" then -- [-inf, -4.0]
                     value_out_data(15) <= sign;
-                    value_out_data(14 downto 0) <= x"3F80"; -- 1.0
+                    temp_value := x"3F80"; -- 1.0
+                    value_out_data(14 downto 0) <= temp_value(14 downto 0);
                     value_out_valid <= '1';
 
                     slope_out_data <= (others => '0');
@@ -71,13 +74,15 @@ begin
                         slope_out_data <= x"3BF2"; -- 0.00739
                         slope_out_valid <= '1';
 
-                        offset_out_data(14 downto 0) <= x"3F78"; -- 0.97183
+                        temp_value := x"3F78"; -- 0.97183
+                        offset_out_data(14 downto 0) <= temp_value(14 downto 0);
                         offset_out_valid <= '1';
                     else -- [-2.5, -1.75]
                         slope_out_data <= x"3D66"; -- 0.05619
                         slope_out_valid <= '1';
 
-                        offset_out_data(14 downto 0) <= x"3F59"; -- 0.84983
+                        temp_value := x"3F59"; -- 0.84983
+                        offset_out_data(14 downto 0) <= temp_value(14 downto 0);
                         offset_out_valid <= '1';
                     end if;
 
@@ -93,19 +98,22 @@ begin
                         slope_out_data <= x"3D66"; -- 0.05619
                         slope_out_valid <= '1';
 
-                        offset_out_data(14 downto 0) <= x"3F59"; -- 0.84983
+                        temp_value := x"3F59"; -- 0.84983
+                        offset_out_data(14 downto 0) <= temp_value(14 downto 0);
                         offset_out_valid <= '1';
                     elsif fraction >= x"20" then -- [-1.75, -1.25]
                         slope_out_data <= x"3E40"; -- 0.18788
                         slope_out_valid <= '1';
 
-                        offset_out_data(14 downto 0) <= x"3F1E"; -- 0.61937
+                        temp_value := x"3F1E"; -- 0.61937
+                        offset_out_data(14 downto 0) <= temp_value(14 downto 0);
                         offset_out_valid <= '1';
                     else -- [-1.25, -1.0]
                         slope_out_data <= x"3EB8"; -- 0.36098
                         slope_out_valid <= '1';
 
-                        offset_out_data(14 downto 0) <= x"3ECE"; -- 0.40300
+                        temp_value := x"3ECE"; -- 0.40300
+                        offset_out_data(14 downto 0) <= temp_value(14 downto 0);
                         offset_out_valid <= '1';
                     end if;
 
@@ -121,13 +129,15 @@ begin
                         slope_out_data <= x"3F00"; -- 0.5
                         slope_out_valid <= '1';
 
-                        offset_out_data(14 downto 0) <= x"3E86"; -- 0.26316
+                        temp_value := x"3E86"; -- 0.26316
+                        offset_out_data(14 downto 0) <= temp_value(14 downto 0);
                         offset_out_valid <= '1';
                     else -- [-0.75, -0.5]
                         slope_out_data <= x"3F30"; -- 0.6875
                         slope_out_valid <= '1';
 
-                        offset_out_data(14 downto 0) <= x"3DF6"; -- 0.12011
+                        temp_value := x"3DF6"; -- 0.12011
+                        offset_out_data(14 downto 0) <= temp_value(14 downto 0);
                         offset_out_valid <= '1';
                     end if;
 
@@ -141,7 +151,8 @@ begin
                     slope_out_valid <= '1';
 
                     offset_out_data(15) <= sign;
-                    offset_out_data(14 downto 0) <= x"3E94"; -- 0.29085
+                    temp_value := x"3E94"; -- 0.29085
+                    offset_out_data(14 downto 0) <= temp_value(14 downto 0);
                     offset_out_valid <= '1';
 
                     input_out_data <= in_data;

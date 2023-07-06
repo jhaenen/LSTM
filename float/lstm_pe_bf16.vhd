@@ -433,7 +433,7 @@ architecture behav of lstm_pe_bf16 is
     signal c_t : std_logic_vector(15 downto 0);
 
     -- State machine with accumulate and post states
-    type pe_state_t is (SETUP, RECEIVE, ACCUMULATE, POST);
+    type pe_state_t is (RECEIVE, ACCUMULATE, POST);
     signal pe_state : pe_state_t := RECEIVE;
 
     type pe_post_state_t is (S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11);
