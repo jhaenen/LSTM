@@ -292,7 +292,7 @@ begin
         weight_o_in_last <= '1';
         weight_o_hid_last <= '1';
 
-        wait for clk_period * 3;
+        wait for clk_period;
 
         -- Make inputs invalid
         input_valid <= '0';
