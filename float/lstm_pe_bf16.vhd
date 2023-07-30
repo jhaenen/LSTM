@@ -2,16 +2,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
--- Synthesis only
-use ieee.fixed_pkg.all; 
-
--- -- Simulation only
--- library ieee_proposed;
--- use ieee_proposed.float_pkg.all;
-
-use work.rnn_pkg.all;
-use work.util_pkg.all;
-
 entity lstm_pe_bf16 is
     port (
         clk     : in std_logic;
@@ -222,219 +212,219 @@ architecture behav of lstm_pe_bf16 is
     -- Output signals from the MACs
 
     signal i_in_out_data : std_logic_vector(15 downto 0);
-    signal i_in_out_data_buffer : std_logic_vector(15 downto 0);
+    signal i_in_out_data_buffer : std_logic_vector(15 downto 0) := (others => '0');
     signal i_in_out_valid : std_logic;
     signal i_in_out_ready : std_logic := '1';
     signal i_in_out_last : std_logic;
 
     signal i_hid_out_data : std_logic_vector(15 downto 0);
-    signal i_hid_out_data_buffer : std_logic_vector(15 downto 0);
+    signal i_hid_out_data_buffer : std_logic_vector(15 downto 0) := (others => '0');
     signal i_hid_out_valid : std_logic;
     signal i_hid_out_ready : std_logic := '1';
     signal i_hid_out_last : std_logic;
 
     signal f_in_out_data : std_logic_vector(15 downto 0);
-    signal f_in_out_data_buffer : std_logic_vector(15 downto 0);
+    signal f_in_out_data_buffer : std_logic_vector(15 downto 0) := (others => '0');
     signal f_in_out_valid : std_logic;
     signal f_in_out_ready : std_logic := '1';
     signal f_in_out_last : std_logic;
 
     signal f_hid_out_data : std_logic_vector(15 downto 0);
-    signal f_hid_out_data_buffer : std_logic_vector(15 downto 0);
+    signal f_hid_out_data_buffer : std_logic_vector(15 downto 0) := (others => '0');
     signal f_hid_out_valid : std_logic;
     signal f_hid_out_ready : std_logic := '1';
     signal f_hid_out_last : std_logic;
 
     signal o_in_out_data : std_logic_vector(15 downto 0);
-    signal o_in_out_data_buffer : std_logic_vector(15 downto 0);
+    signal o_in_out_data_buffer : std_logic_vector(15 downto 0) := (others => '0');
     signal o_in_out_valid : std_logic;
     signal o_in_out_ready : std_logic := '1';
     signal o_in_out_last : std_logic;
 
     signal o_hid_out_data : std_logic_vector(15 downto 0);
-    signal o_hid_out_data_buffer : std_logic_vector(15 downto 0);
+    signal o_hid_out_data_buffer : std_logic_vector(15 downto 0) := (others => '0');
     signal o_hid_out_valid : std_logic;
     signal o_hid_out_ready : std_logic := '1';
     signal o_hid_out_last : std_logic;
 
     signal g_in_out_data : std_logic_vector(15 downto 0);
-    signal g_in_out_data_buffer : std_logic_vector(15 downto 0);
+    signal g_in_out_data_buffer : std_logic_vector(15 downto 0) := (others => '0');
     signal g_in_out_valid : std_logic;
     signal g_in_out_ready : std_logic := '1';
     signal g_in_out_last : std_logic;
 
     signal g_hid_out_data : std_logic_vector(15 downto 0);
-    signal g_hid_out_data_buffer : std_logic_vector(15 downto 0);
+    signal g_hid_out_data_buffer : std_logic_vector(15 downto 0) := (others => '0');
     signal g_hid_out_valid : std_logic;
     signal g_hid_out_ready : std_logic := '1';
     signal g_hid_out_last : std_logic;
 
     -- Signals for the adders
 
-    signal adder_1_A_tdata : std_logic_vector(15 downto 0);
+    signal adder_1_A_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal adder_1_A_tready : std_logic;
-    signal adder_1_A_tvalid : std_logic;
+    signal adder_1_A_tvalid : std_logic := '0';
 
-    signal adder_1_B_tdata : std_logic_vector(15 downto 0);
+    signal adder_1_B_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal adder_1_B_tready : std_logic;
-    signal adder_1_B_tvalid : std_logic;
+    signal adder_1_B_tvalid : std_logic := '0';
 
-    signal adder_1_RESULT_tdata : std_logic_vector(15 downto 0);
-    signal adder_1_RESULT_tready : std_logic;
+    signal adder_1_RESULT_tdata : std_logic_vector(15 downto 0) := (others => '0');
+    signal adder_1_RESULT_tready : std_logic := '0';
     signal adder_1_RESULT_tvalid : std_logic;
 
-    signal adder_2_A_tdata : std_logic_vector(15 downto 0);
+    signal adder_2_A_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal adder_2_A_tready : std_logic;
-    signal adder_2_A_tvalid : std_logic;
+    signal adder_2_A_tvalid : std_logic := '0';
 
-    signal adder_2_B_tdata : std_logic_vector(15 downto 0);
+    signal adder_2_B_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal adder_2_B_tready : std_logic;
-    signal adder_2_B_tvalid : std_logic;
+    signal adder_2_B_tvalid : std_logic := '0';
 
-    signal adder_2_RESULT_tdata : std_logic_vector(15 downto 0);
-    signal adder_2_RESULT_tready : std_logic;
+    signal adder_2_RESULT_tdata : std_logic_vector(15 downto 0) := (others => '0');
+    signal adder_2_RESULT_tready : std_logic := '0';
     signal adder_2_RESULT_tvalid : std_logic;
 
-    signal adder_3_A_tdata : std_logic_vector(15 downto 0);
+    signal adder_3_A_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal adder_3_A_tready : std_logic;
-    signal adder_3_A_tvalid : std_logic;
+    signal adder_3_A_tvalid : std_logic := '0';
 
-    signal adder_3_B_tdata : std_logic_vector(15 downto 0);
+    signal adder_3_B_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal adder_3_B_tready : std_logic;
-    signal adder_3_B_tvalid : std_logic;
+    signal adder_3_B_tvalid : std_logic := '0';
 
-    signal adder_3_RESULT_tdata : std_logic_vector(15 downto 0);
-    signal adder_3_RESULT_tready : std_logic;
+    signal adder_3_RESULT_tdata : std_logic_vector(15 downto 0) := (others => '0');
+    signal adder_3_RESULT_tready : std_logic := '0';
     signal adder_3_RESULT_tvalid : std_logic;
 
     -- Signals for the multipliers
-    signal mult_1_A_tdata : std_logic_vector(15 downto 0);
+    signal mult_1_A_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal mult_1_A_tready : std_logic;
-    signal mult_1_A_tvalid : std_logic;
-    signal mult_1_A_tlast : std_logic;
+    signal mult_1_A_tvalid : std_logic := '0';
+    signal mult_1_A_tlast : std_logic := '0';
 
-    signal mult_1_B_tdata : std_logic_vector(15 downto 0);
+    signal mult_1_B_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal mult_1_B_tready : std_logic;
-    signal mult_1_B_tvalid : std_logic;
-    signal mult_1_B_tlast : std_logic;
+    signal mult_1_B_tvalid : std_logic := '0';
+    signal mult_1_B_tlast : std_logic := '0';
 
-    signal mult_1_RESULT_tdata : std_logic_vector(15 downto 0);
-    signal mult_1_RESULT_tready : std_logic;
+    signal mult_1_RESULT_tdata : std_logic_vector(15 downto 0) := (others => '0');
+    signal mult_1_RESULT_tready : std_logic := '0';
     signal mult_1_RESULT_tvalid : std_logic;
 
-    signal mult_1_tdest : std_logic_vector(0 downto 0);
+    signal mult_1_tdest : std_logic_vector(0 downto 0) := (others => '0');
 
-    signal mult_2_A_tdata : std_logic_vector(15 downto 0);
+    signal mult_2_A_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal mult_2_A_tready : std_logic;
-    signal mult_2_A_tvalid : std_logic;
-    signal mult_2_A_tlast : std_logic;
+    signal mult_2_A_tvalid : std_logic := '0';
+    signal mult_2_A_tlast : std_logic := '0';
 
-    signal mult_2_B_tdata : std_logic_vector(15 downto 0);
+    signal mult_2_B_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal mult_2_B_tready : std_logic;
-    signal mult_2_B_tvalid : std_logic;
-    signal mult_2_B_tlast : std_logic;
+    signal mult_2_B_tvalid : std_logic := '0';
+    signal mult_2_B_tlast : std_logic := '0';
 
-    signal mult_2_RESULT_tdata : std_logic_vector(15 downto 0);
-    signal mult_2_RESULT_tready : std_logic;
+    signal mult_2_RESULT_tdata : std_logic_vector(15 downto 0) := (others => '0');
+    signal mult_2_RESULT_tready : std_logic := '0';
     signal mult_2_RESULT_tvalid : std_logic;
 
-    signal mult_2_tdest : std_logic_vector(0 downto 0);
+    signal mult_2_tdest : std_logic_vector(0 downto 0) := (others => '0');
 
-    signal mult_3_A_tdata : std_logic_vector(15 downto 0);
+    signal mult_3_A_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal mult_3_A_tready : std_logic;
-    signal mult_3_A_tvalid : std_logic;
-    signal mult_3_A_tlast : std_logic;
+    signal mult_3_A_tvalid : std_logic := '0';
+    signal mult_3_A_tlast : std_logic := '0';
 
-    signal mult_3_B_tdata : std_logic_vector(15 downto 0);
+    signal mult_3_B_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal mult_3_B_tready : std_logic;
-    signal mult_3_B_tvalid : std_logic;
-    signal mult_3_B_tlast : std_logic;
+    signal mult_3_B_tvalid : std_logic := '0';
+    signal mult_3_B_tlast : std_logic := '0';
 
-    signal mult_3_RESULT_tdata : std_logic_vector(15 downto 0);
-    signal mult_3_RESULT_tready : std_logic;
+    signal mult_3_RESULT_tdata : std_logic_vector(15 downto 0) := (others => '0');
+    signal mult_3_RESULT_tready : std_logic := '0';
     signal mult_3_RESULT_tvalid : std_logic;
 
-    signal mult_3_tdest : std_logic_vector(0 downto 0);
+    signal mult_3_tdest : std_logic_vector(0 downto 0) := (others => '0');
 
     -- Signals for the arbiters
 
-    signal sig_1_input_tdata : std_logic_vector(15 downto 0);
+    signal sig_1_input_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal sig_1_input_tready : std_logic;
-    signal sig_1_input_tvalid : std_logic;
+    signal sig_1_input_tvalid : std_logic := '0';
 
     signal sig_1_slope_tdata : std_logic_vector(15 downto 0);
-    signal sig_1_slope_tready : std_logic;
+    signal sig_1_slope_tready : std_logic := '0';
     signal sig_1_slope_tvalid : std_logic;
 
     signal sig_1_offset_tdata : std_logic_vector(15 downto 0);
-    signal sig_1_offset_tready : std_logic;
+    signal sig_1_offset_tready : std_logic := '0';
     signal sig_1_offset_tvalid : std_logic;
 
     signal sig_1_input_out_tdata : std_logic_vector(15 downto 0);
-    signal sig_1_input_out_tready : std_logic;
+    signal sig_1_input_out_tready : std_logic := '0';
     signal sig_1_input_out_tvalid : std_logic;
 
     signal sig_1_value_tdata : std_logic_vector(15 downto 0);
-    signal sig_1_value_tready : std_logic;
+    signal sig_1_value_tready : std_logic := '0';
     signal sig_1_value_tvalid : std_logic;
 
-    signal sig_2_input_tdata : std_logic_vector(15 downto 0);
+    signal sig_2_input_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal sig_2_input_tready : std_logic;
-    signal sig_2_input_tvalid : std_logic;
+    signal sig_2_input_tvalid : std_logic := '0';
 
     signal sig_2_slope_tdata : std_logic_vector(15 downto 0);
-    signal sig_2_slope_tready : std_logic;
+    signal sig_2_slope_tready : std_logic := '0';
     signal sig_2_slope_tvalid : std_logic;
 
     signal sig_2_offset_tdata : std_logic_vector(15 downto 0);
-    signal sig_2_offset_tready : std_logic;
+    signal sig_2_offset_tready : std_logic := '0';
     signal sig_2_offset_tvalid : std_logic;
 
     signal sig_2_input_out_tdata : std_logic_vector(15 downto 0);
-    signal sig_2_input_out_tready : std_logic;
+    signal sig_2_input_out_tready : std_logic := '0';
     signal sig_2_input_out_tvalid : std_logic;
 
     signal sig_2_value_tdata : std_logic_vector(15 downto 0);
-    signal sig_2_value_tready : std_logic;
+    signal sig_2_value_tready : std_logic := '0';
     signal sig_2_value_tvalid : std_logic;
 
-    signal tanh_input_tdata : std_logic_vector(15 downto 0);
+    signal tanh_input_tdata : std_logic_vector(15 downto 0) := (others => '0');
     signal tanh_input_tready : std_logic;
-    signal tanh_input_tvalid : std_logic;
+    signal tanh_input_tvalid : std_logic := '0';
 
     signal tanh_slope_tdata : std_logic_vector(15 downto 0);
-    signal tanh_slope_tready : std_logic;
+    signal tanh_slope_tready : std_logic := '0';
     signal tanh_slope_tvalid : std_logic;
 
     signal tanh_offset_tdata : std_logic_vector(15 downto 0);
-    signal tanh_offset_tready : std_logic;
+    signal tanh_offset_tready : std_logic := '0';
     signal tanh_offset_tvalid : std_logic;
 
     signal tanh_input_out_tdata : std_logic_vector(15 downto 0);
-    signal tanh_input_out_tready : std_logic;
+    signal tanh_input_out_tready : std_logic := '0';
     signal tanh_input_out_tvalid : std_logic;
 
     signal tanh_value_tdata : std_logic_vector(15 downto 0);
-    signal tanh_value_tready : std_logic;
+    signal tanh_value_tready : std_logic := '0';
     signal tanh_value_tvalid : std_logic;
 
     -- Signals to use for buffering in the post state
-    signal post_buffer_1 : std_logic_vector(15 downto 0);
-    signal post_buffer_2 : std_logic_vector(15 downto 0);
-    signal post_buffer_3 : std_logic_vector(15 downto 0);
-    signal post_buffer_4 : std_logic_vector(15 downto 0);
-    signal post_buffer_5 : std_logic_vector(15 downto 0);
-    signal post_buffer_6 : std_logic_vector(15 downto 0);
-    signal post_buffer_7 : std_logic_vector(15 downto 0);
-    signal post_buffer_8 : std_logic_vector(15 downto 0);
-    signal post_buffer_9 : std_logic_vector(15 downto 0);
+    signal post_buffer_1 : std_logic_vector(15 downto 0) := (others => '0');
+    signal post_buffer_2 : std_logic_vector(15 downto 0) := (others => '0');
+    signal post_buffer_3 : std_logic_vector(15 downto 0) := (others => '0');
+    signal post_buffer_4 : std_logic_vector(15 downto 0) := (others => '0');
+    signal post_buffer_5 : std_logic_vector(15 downto 0) := (others => '0');
+    signal post_buffer_6 : std_logic_vector(15 downto 0) := (others => '0');
+    signal post_buffer_7 : std_logic_vector(15 downto 0) := (others => '0');
+    signal post_buffer_8 : std_logic_vector(15 downto 0) := (others => '0');
+    signal post_buffer_9 : std_logic_vector(15 downto 0) := (others => '0');
 
     -- C buffer
-    signal c_t : std_logic_vector(15 downto 0);
+    signal c_t : std_logic_vector(15 downto 0) := (others => '0');
 
     -- State machine with accumulate and post states
-    type pe_state_t is (RECEIVE, ACCUMULATE, POST);
-    signal pe_state : pe_state_t := RECEIVE;
+    type pe_state_t is (READY, RECEIVE, ACCUMULATE, POST);
+    signal pe_state : pe_state_t := READY;
 
     type pe_post_state_t is (S1, S2, S3, S4, S5, S6, S7, S8, S9, S10, S11);
     signal pe_post_state : pe_post_state_t := S1;
@@ -443,6 +433,15 @@ architecture behav of lstm_pe_bf16 is
   
     type operator_state_t is (IDLE, WAITING, DONE);
 begin
+    i_in_mac_data_ready <= mult_1_A_tready;
+    i_in_mac_weight_ready <= mult_1_B_tready;
+
+    i_hid_mac_data_ready <= mult_2_A_tready;
+    i_hid_mac_weight_ready <= mult_2_B_tready;
+
+    f_in_mac_data_ready <= mult_3_A_tready;
+    f_in_mac_weight_ready <= mult_3_B_tready;
+
     -- Accumulation process
     process (clk)
         variable pe_state_next: pe_state_t;
@@ -472,6 +471,49 @@ begin
     begin
         if rising_edge(clk) then
             case pe_state is
+                when READY =>
+                    -- Check if MACs are ready to receive data
+                    if (i_in_mac_data_ready = '1' and i_in_mac_weight_ready = '1' and i_hid_mac_data_ready = '1' and i_hid_mac_weight_ready = '1' and
+                        f_in_mac_data_ready = '1' and f_in_mac_weight_ready = '1' and f_hid_mac_data_ready = '1' and f_hid_mac_weight_ready = '1' and
+                        o_in_mac_data_ready = '1' and o_in_mac_weight_ready = '1' and o_hid_mac_data_ready = '1' and o_hid_mac_weight_ready = '1' and
+                        g_in_mac_data_ready = '1' and g_in_mac_weight_ready = '1' and g_hid_mac_data_ready = '1' and g_hid_mac_weight_ready = '1') 
+                    then
+                        pe_state_next := RECEIVE;
+
+                        -- Set all the ready signals to 1
+                        S_AXIS_DATA_IN_tready <= '1';
+                        S_AXIS_HIDDEN_IN_tready <= '1';
+
+                        S_AXIS_WEIGHT_I_input_tready <= '1';
+                        S_AXIS_WEIGHT_I_hidden_tready <= '1';
+
+                        S_AXIS_WEIGHT_F_INPUT_tready <= '1';
+                        S_AXIS_WEIGHT_F_HIDDEN_tready <= '1';
+
+                        S_AXIS_WEIGHT_O_INPUT_tready <= '1';
+                        S_AXIS_WEIGHT_O_HIDDEN_tready <= '1';
+
+                        S_AXIS_WEIGHT_G_INPUT_tready <= '1';
+                        S_AXIS_WEIGHT_G_HIDDEN_tready <= '1';
+                    else
+                        pe_state_next := READY;
+                        
+                        -- Set all the ready signals to 0
+                        S_AXIS_DATA_IN_tready <= '0';
+                        S_AXIS_HIDDEN_IN_tready <= '0';
+
+                        S_AXIS_WEIGHT_I_input_tready <= '0';
+                        S_AXIS_WEIGHT_I_hidden_tready <= '0';
+
+                        S_AXIS_WEIGHT_F_INPUT_tready <= '0';
+                        S_AXIS_WEIGHT_F_HIDDEN_tready <= '0';
+
+                        S_AXIS_WEIGHT_O_INPUT_tready <= '0';
+                        S_AXIS_WEIGHT_O_HIDDEN_tready <= '0';
+
+                        S_AXIS_WEIGHT_G_INPUT_tready <= '0';
+                        S_AXIS_WEIGHT_G_HIDDEN_tready <= '0';
+                    end if;
                 when RECEIVE =>
                     -- Check if none of the last signals are raised
                     if (S_AXIS_DATA_IN_tlast = '0' and S_AXIS_HIDDEN_IN_tlast = '0' and
@@ -479,65 +521,53 @@ begin
                         S_AXIS_WEIGHT_F_input_tlast = '0' and S_AXIS_WEIGHT_F_hidden_tlast = '0' and
                         S_AXIS_WEIGHT_O_input_tlast = '0' and S_AXIS_WEIGHT_O_hidden_tlast = '0' and
                         S_AXIS_WEIGHT_G_input_tlast = '0' and S_AXIS_WEIGHT_G_hidden_tlast = '0') 
-                        then
-                        -- Check if all MACs are ready
-                        if (i_in_mac_data_ready = '1' and i_in_mac_weight_ready = '1' and i_hid_mac_data_ready = '1' and i_hid_mac_weight_ready = '1' and
-                            f_in_mac_data_ready = '1' and f_in_mac_weight_ready = '1' and f_hid_mac_data_ready = '1' and f_hid_mac_weight_ready = '1' and
-                            o_in_mac_data_ready = '1' and o_in_mac_weight_ready = '1' and o_hid_mac_data_ready = '1' and o_hid_mac_weight_ready = '1' and
-                            g_in_mac_data_ready = '1' and g_in_mac_weight_ready = '1' and g_hid_mac_data_ready = '1' and g_hid_mac_weight_ready = '1') 
-                            then
-                            S_AXIS_DATA_IN_tready <= '1';
-                            S_AXIS_HIDDEN_IN_tready <= '1';
+                    then
+                        -- Keep ready signals high
+                        S_AXIS_DATA_IN_tready <= '1';
+                        S_AXIS_HIDDEN_IN_tready <= '1';
 
-                            S_AXIS_WEIGHT_I_INPUT_tready <= '1';
-                            S_AXIS_WEIGHT_I_HIDDEN_tready <= '1';
+                        S_AXIS_WEIGHT_I_INPUT_tready <= '1';
+                        S_AXIS_WEIGHT_I_HIDDEN_tready <= '1';
 
-                            S_AXIS_WEIGHT_F_INPUT_tready <= '1';
-                            S_AXIS_WEIGHT_F_HIDDEN_tready <= '1';
+                        S_AXIS_WEIGHT_F_INPUT_tready <= '1';
+                        S_AXIS_WEIGHT_F_HIDDEN_tready <= '1';
 
-                            S_AXIS_WEIGHT_O_INPUT_tready <= '1';
-                            S_AXIS_WEIGHT_O_HIDDEN_tready <= '1';
+                        S_AXIS_WEIGHT_O_INPUT_tready <= '1';
+                        S_AXIS_WEIGHT_O_HIDDEN_tready <= '1';
 
-                            S_AXIS_WEIGHT_G_INPUT_tready <= '1';
-                            S_AXIS_WEIGHT_G_HIDDEN_tready <= '1';
+                        S_AXIS_WEIGHT_G_INPUT_tready <= '1';
+                        S_AXIS_WEIGHT_G_HIDDEN_tready <= '1';
 
-                            -- Route the inputs of the multipliers to the correct mac inputs
-                            mult_1_A_tdata <= S_AXIS_DATA_IN_tdata;
-                            mult_1_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                            mult_1_A_tlast <= S_AXIS_DATA_IN_tlast;
-                            i_in_mac_data_ready <= mult_1_A_tready;
+                        -- Route the inputs of the multipliers to the correct mac inputs
+                        mult_1_A_tdata <= S_AXIS_DATA_IN_tdata;
+                        mult_1_A_tvalid <= S_AXIS_DATA_IN_tvalid;
+                        mult_1_A_tlast <= S_AXIS_DATA_IN_tlast;
 
-                            mult_1_B_tdata <= S_AXIS_WEIGHT_I_input_tdata;
-                            mult_1_B_tvalid <= S_AXIS_WEIGHT_I_input_tvalid;
-                            mult_1_B_tlast <= S_AXIS_WEIGHT_I_input_tlast;
-                            i_in_mac_weight_ready <= mult_1_B_tready;
+                        mult_1_B_tdata <= S_AXIS_WEIGHT_I_input_tdata;
+                        mult_1_B_tvalid <= S_AXIS_WEIGHT_I_input_tvalid;
+                        mult_1_B_tlast <= S_AXIS_WEIGHT_I_input_tlast;
 
-                            mult_1_tdest <= "0";
+                        mult_1_tdest <= "0";
 
-                            mult_2_A_tdata <= S_AXIS_DATA_IN_tdata;
-                            mult_2_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                            mult_2_A_tlast <= S_AXIS_DATA_IN_tlast;
-                            i_hid_mac_data_ready <= mult_2_A_tready;
+                        mult_2_A_tdata <= S_AXIS_DATA_IN_tdata;
+                        mult_2_A_tvalid <= S_AXIS_DATA_IN_tvalid;
+                        mult_2_A_tlast <= S_AXIS_DATA_IN_tlast;
 
-                            mult_2_B_tdata <= S_AXIS_WEIGHT_I_hidden_tdata;
-                            mult_2_B_tvalid <= S_AXIS_WEIGHT_I_hidden_tvalid;
-                            mult_2_B_tlast <= S_AXIS_WEIGHT_I_hidden_tlast;
-                            i_hid_mac_weight_ready <= mult_2_B_tready;
+                        mult_2_B_tdata <= S_AXIS_WEIGHT_I_hidden_tdata;
+                        mult_2_B_tvalid <= S_AXIS_WEIGHT_I_hidden_tvalid;
+                        mult_2_B_tlast <= S_AXIS_WEIGHT_I_hidden_tlast;
 
-                            mult_2_tdest <= "0";
+                        mult_2_tdest <= "0";
 
-                            mult_3_A_tdata <= S_AXIS_DATA_IN_tdata;
-                            mult_3_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                            mult_3_A_tlast <= S_AXIS_DATA_IN_tlast;
-                            f_in_mac_data_ready <= mult_3_A_tready;
+                        mult_3_A_tdata <= S_AXIS_DATA_IN_tdata;
+                        mult_3_A_tvalid <= S_AXIS_DATA_IN_tvalid;
+                        mult_3_A_tlast <= S_AXIS_DATA_IN_tlast;
 
-                            mult_3_B_tdata <= S_AXIS_WEIGHT_F_input_tdata;
-                            mult_3_B_tvalid <= S_AXIS_WEIGHT_F_input_tvalid;
-                            mult_3_B_tlast <= S_AXIS_WEIGHT_F_input_tlast;
-                            f_in_mac_weight_ready <= mult_3_B_tready;
+                        mult_3_B_tdata <= S_AXIS_WEIGHT_F_input_tdata;
+                        mult_3_B_tvalid <= S_AXIS_WEIGHT_F_input_tvalid;
+                        mult_3_B_tlast <= S_AXIS_WEIGHT_F_input_tlast;
 
-                            mult_3_tdest <= "0";
-                        end if;
+                        mult_3_tdest <= "0";
                     else
                         -- The last element has been received, cannot accept any more data
                         S_AXIS_DATA_IN_tready <= '0';
@@ -651,7 +681,7 @@ begin
                                 -- Set the inputs to the adder
                                 adder_1_A_tdata <= i_in_out_data_buffer;
                                 adder_1_A_tvalid <= '1';
-                                adder_1_B_tdata <= g_hid_out_data_buffer;
+                                adder_1_B_tdata <= i_hid_out_data_buffer;
                                 adder_1_B_tvalid <= '1';
 
                                 adder_1_RESULT_tready <= '1';
@@ -1789,8 +1819,8 @@ begin
     sig_1 : sigmoid_arbiter
         port map (
             in_data => sig_1_input_tdata,
-            in_valid => sig_1_input_tready,
-            in_ready => sig_1_input_tvalid,
+            in_valid => sig_1_input_tvalid,
+            in_ready => sig_1_input_tready,
 
             slope_out_valid => sig_1_slope_tvalid,
             slope_out_data => sig_1_slope_tdata,
@@ -1814,8 +1844,8 @@ begin
     sig_2 : sigmoid_arbiter
         port map (
             in_data => sig_2_input_tdata,
-            in_valid => sig_2_input_tready,
-            in_ready => sig_2_input_tvalid,
+            in_ready => sig_2_input_tready,
+            in_valid => sig_2_input_tvalid,
 
             slope_out_valid => sig_2_slope_tvalid,
             slope_out_data => sig_2_slope_tdata,
@@ -1839,8 +1869,8 @@ begin
     tanh : tanh_arbiter
         port map (
             in_data => tanh_input_tdata,
-            in_valid => tanh_input_tready,
-            in_ready => tanh_input_tvalid,
+            in_ready => tanh_input_tready,
+            in_valid => tanh_input_tvalid,
 
             slope_out_valid => tanh_slope_tvalid,
             slope_out_data => tanh_slope_tdata,

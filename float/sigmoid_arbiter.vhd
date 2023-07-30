@@ -9,29 +9,29 @@ entity sigmoid_arbiter is
         -- input
         in_valid : in std_logic;
         in_data : in std_logic_vector(15 downto 0);
-        in_ready : out std_logic;
+        in_ready : out std_logic := '0';
 
         -- output
-        slope_out_valid : out std_logic;
-        slope_out_data : out std_logic_vector(15 downto 0);
+        slope_out_valid : out std_logic := '0';
+        slope_out_data : out std_logic_vector(15 downto 0) := (others => '0');
         slope_out_ready : in std_logic;
 
-        offset_out_valid : out std_logic;
-        offset_out_data : out std_logic_vector(15 downto 0);
+        offset_out_valid : out std_logic := '0';
+        offset_out_data : out std_logic_vector(15 downto 0) := (others => '0');
         offset_out_ready : in std_logic;
 
-        input_out_valid : out std_logic;
-        input_out_data : out std_logic_vector(15 downto 0);
+        input_out_valid : out std_logic := '0';
+        input_out_data : out std_logic_vector(15 downto 0) := (others => '0');
         input_out_ready : in std_logic;
 
-        value_out_valid : out std_logic;
-        value_out_data : out std_logic_vector(15 downto 0);
+        value_out_valid : out std_logic := '0';
+        value_out_data : out std_logic_vector(15 downto 0) := (others => '0');
         value_out_ready : in std_logic
     );
 end sigmoid_arbiter;
 
 architecture behav of sigmoid_arbiter is
-    signal in_ready_buf : std_logic;
+    signal in_ready_buf : std_logic := '0';
 begin
 
     -- Input ready if all outputs are ready
