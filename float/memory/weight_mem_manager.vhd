@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-use work.util_pkg.all;
+use work.types.all;
 
 entity weight_mem_manager is
     generic (
@@ -146,12 +146,10 @@ architecture behav of weight_mem_manager is
     signal block_sel : block_sel_t := NONE;
 
     -- Shift register for valid signal of size LATENCY
-    type valid_t is (INVALID, VALID);
     type valid_sr_t is array (0 to LATENCY-1) of valid_t;
     signal valid_sr : valid_sr_t := (others => INVALID);
 
     -- Shift register for last signal of size LATENCY
-    type last_t is (NOT_LAST, SEQ_LAST, LAYER_LAST);
     type last_sr_t is array (0 to LATENCY-1) of last_t;
     signal last_sr : last_sr_t := (others => NOT_LAST);
 
