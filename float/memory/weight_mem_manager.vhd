@@ -18,17 +18,16 @@ entity weight_mem_manager is
         s_axis_counter_last : in std_logic_vector(1 downto 0);
 
         -- Write bus
-        s_axis_write_bus_data : in std_logic_vector((16 * DEPTH) - 1 downto 0);
+        s_axis_write_bus_data : in std_logic_vector((16 * DEPTH / 2) - 1 downto 0);
         s_axis_write_bus_valid : in std_logic;
         s_axis_write_bus_ready : out std_logic := '1';
         s_axis_write_bus_last : in std_logic;
-        s_axis_write_bus_dest : in std_logic_vector(8 downto 0);
+        s_axis_write_bus_dest : in std_logic_vector(9 downto 0);
         s_axis_write_bus_user : in std_logic_vector(2 downto 0);
 
         -- Writing blocks
         mem_write_addr : out std_logic_vector(8 downto 0) := (others => '0');
-        mem_write_data_A : out std_logic_vector((16 * DEPTH / 2) - 1 downto 0) := (others => '0');
-        mem_write_data_B : out std_logic_vector((16 * DEPTH / 2) - 1 downto 0) := (others => '0');
+        mem_write_data : out std_logic_vector((16 * DEPTH / 2) - 1 downto 0) := (others => '0');
 
         mem_raddr : out std_logic_vector(8 downto 0) := (others => '0');
         -- data block 1
@@ -344,17 +343,21 @@ begin
                 weight_dest := slv_to_weight_dest(s_axis_write_bus_user);
 
                 -- Split the data into two parts
-                mem_write_data_A <= s_axis_write_bus_data((16 * DEPTH) - 1 downto (16 * DEPTH / 2));
-                mem_write_data_B <= s_axis_write_bus_data((16 * DEPTH / 2) - 1 downto 0);
+                mem_write_data <= s_axis_write_bus_data;
 
-                mem_write_addr <= s_axis_write_bus_dest;
+                mem_write_addr <= s_axis_write_bus_dest(9 downto 1);
 
                 -- The following code is a multiplexer to write the data to the correct memory
                 if (weight_dest = I_INPUT) then
                     -- If there is no data in memory or we're reading from block 2, write to block 1
                     if (block_sel = BLOCK2 or block_sel = NONE) then 
-                        mem_i_in_write_we_A_blk1 <= "1";
-                        mem_i_in_write_we_B_blk1 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_i_in_write_we_A_blk1 <= "0";
+                            mem_i_in_write_we_B_blk1 <= "1";
+                        else
+                            mem_i_in_write_we_A_blk1 <= "1";
+                            mem_i_in_write_we_B_blk1 <= "0";
+                        end if;
 
                         mem_i_in_write_we_A_blk2 <= "0";
                         mem_i_in_write_we_B_blk2 <= "0";
@@ -363,8 +366,13 @@ begin
                         mem_i_in_write_we_A_blk1 <= "0";
                         mem_i_in_write_we_B_blk1 <= "0";
 
-                        mem_i_in_write_we_A_blk2 <= "1";
-                        mem_i_in_write_we_B_blk2 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_i_in_write_we_A_blk2 <= "0";
+                            mem_i_in_write_we_B_blk2 <= "1";
+                        else
+                            mem_i_in_write_we_A_blk2 <= "1";
+                            mem_i_in_write_we_B_blk2 <= "0";
+                        end if;
                     end if;
                 else -- We're not writing for this weight, so set the everything to 0
                     mem_i_in_write_we_A_blk1 <= "0";
@@ -377,8 +385,13 @@ begin
                 if (weight_dest = I_HIDDEN) then
                     -- If there is no data in memory or we're reading from block 2, write to block 1
                     if (block_sel = BLOCK2 or block_sel = NONE) then 
-                        mem_i_hid_write_we_A_blk1 <= "1";
-                        mem_i_hid_write_we_B_blk1 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_i_hid_write_we_A_blk1 <= "0";
+                            mem_i_hid_write_we_B_blk1 <= "1";
+                        else
+                            mem_i_hid_write_we_A_blk1 <= "1";
+                            mem_i_hid_write_we_B_blk1 <= "0";
+                        end if;
 
                         mem_i_hid_write_we_A_blk2 <= "0";
                         mem_i_hid_write_we_B_blk2 <= "0";
@@ -387,8 +400,13 @@ begin
                         mem_i_hid_write_we_A_blk1 <= "0";
                         mem_i_hid_write_we_B_blk1 <= "0";
 
-                        mem_i_hid_write_we_A_blk2 <= "1";
-                        mem_i_hid_write_we_B_blk2 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_i_hid_write_we_A_blk2 <= "0";
+                            mem_i_hid_write_we_B_blk2 <= "1";
+                        else
+                            mem_i_hid_write_we_A_blk2 <= "1";
+                            mem_i_hid_write_we_B_blk2 <= "0";
+                        end if;
                     end if;
                 else -- We're not writing for this weight, so set the everything to 0
                     mem_i_hid_write_we_A_blk1 <= "0";
@@ -401,8 +419,13 @@ begin
                 if (weight_dest = F_INPUT) then
                     -- If there is no data in memory or we're reading from block 2, write to block 1
                     if (block_sel = BLOCK2 or block_sel = NONE) then 
-                        mem_f_in_write_we_A_blk1 <= "1";
-                        mem_f_in_write_we_B_blk1 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_f_in_write_we_A_blk1 <= "0";
+                            mem_f_in_write_we_B_blk1 <= "1";
+                        else
+                            mem_f_in_write_we_A_blk1 <= "1";
+                            mem_f_in_write_we_B_blk1 <= "0";
+                        end if;
 
                         mem_f_in_write_we_A_blk2 <= "0";
                         mem_f_in_write_we_B_blk2 <= "0";
@@ -411,8 +434,13 @@ begin
                         mem_f_in_write_we_A_blk1 <= "0";
                         mem_f_in_write_we_B_blk1 <= "0";
 
-                        mem_f_in_write_we_A_blk2 <= "1";
-                        mem_f_in_write_we_B_blk2 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_f_in_write_we_A_blk2 <= "0";
+                            mem_f_in_write_we_B_blk2 <= "1";
+                        else
+                            mem_f_in_write_we_A_blk2 <= "1";
+                            mem_f_in_write_we_B_blk2 <= "0";
+                        end if;
                     end if;
                 else -- We're not writing for this weight, so set the everything to 0
                     mem_f_in_write_we_A_blk1 <= "0";
@@ -425,8 +453,13 @@ begin
                 if (weight_dest = F_HIDDEN) then
                     -- If there is no data in memory or we're reading from block 2, write to block 1
                     if (block_sel = BLOCK2 or block_sel = NONE) then 
-                        mem_f_hid_write_we_A_blk1 <= "1";
-                        mem_f_hid_write_we_B_blk1 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_f_hid_write_we_A_blk1 <= "0";
+                            mem_f_hid_write_we_B_blk1 <= "1";
+                        else
+                            mem_f_hid_write_we_A_blk1 <= "1";
+                            mem_f_hid_write_we_B_blk1 <= "0";
+                        end if;
 
                         mem_f_hid_write_we_A_blk2 <= "0";
                         mem_f_hid_write_we_B_blk2 <= "0";
@@ -435,8 +468,13 @@ begin
                         mem_f_hid_write_we_A_blk1 <= "0";
                         mem_f_hid_write_we_B_blk1 <= "0";
 
-                        mem_f_hid_write_we_A_blk2 <= "1";
-                        mem_f_hid_write_we_B_blk2 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_f_hid_write_we_A_blk2 <= "0";
+                            mem_f_hid_write_we_B_blk2 <= "1";
+                        else
+                            mem_f_hid_write_we_A_blk2 <= "1";
+                            mem_f_hid_write_we_B_blk2 <= "0";
+                        end if;
                     end if;
                 else -- We're not writing for this weight, so set the everything to 0
                     mem_f_hid_write_we_A_blk1 <= "0";
@@ -449,8 +487,13 @@ begin
                 if (weight_dest = G_INPUT) then
                     -- If there is no data in memory or we're reading from block 2, write to block 1
                     if (block_sel = BLOCK2 or block_sel = NONE) then 
-                        mem_g_in_write_we_A_blk1 <= "1";
-                        mem_g_in_write_we_B_blk1 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_g_in_write_we_A_blk1 <= "0";
+                            mem_g_in_write_we_B_blk1 <= "1";
+                        else
+                            mem_g_in_write_we_A_blk1 <= "1";
+                            mem_g_in_write_we_B_blk1 <= "0";
+                        end if;
 
                         mem_g_in_write_we_A_blk2 <= "0";
                         mem_g_in_write_we_B_blk2 <= "0";
@@ -459,8 +502,13 @@ begin
                         mem_g_in_write_we_A_blk1 <= "0";
                         mem_g_in_write_we_B_blk1 <= "0";
 
-                        mem_g_in_write_we_A_blk2 <= "1";
-                        mem_g_in_write_we_B_blk2 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_g_in_write_we_A_blk2 <= "0";
+                            mem_g_in_write_we_B_blk2 <= "1";
+                        else
+                            mem_g_in_write_we_A_blk2 <= "1";
+                            mem_g_in_write_we_B_blk2 <= "0";
+                        end if;
                     end if;
 
                 else -- We're not writing for this weight, so set the everything to 0
@@ -474,8 +522,13 @@ begin
                 if (weight_dest = G_HIDDEN) then
                     -- If there is no data in memory or we're reading from block 2, write to block 1
                     if (block_sel = BLOCK2 or block_sel = NONE) then 
-                        mem_g_hid_write_we_A_blk1 <= "1";
-                        mem_g_hid_write_we_B_blk1 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_g_hid_write_we_A_blk1 <= "0";
+                            mem_g_hid_write_we_B_blk1 <= "1";
+                        else
+                            mem_g_hid_write_we_A_blk1 <= "1";
+                            mem_g_hid_write_we_B_blk1 <= "0";
+                        end if;
 
                         mem_g_hid_write_we_A_blk2 <= "0";
                         mem_g_hid_write_we_B_blk2 <= "0";
@@ -484,8 +537,13 @@ begin
                         mem_g_hid_write_we_A_blk1 <= "0";
                         mem_g_hid_write_we_B_blk1 <= "0";
 
-                        mem_g_hid_write_we_A_blk2 <= "1";
-                        mem_g_hid_write_we_B_blk2 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_g_hid_write_we_A_blk2 <= "0";
+                            mem_g_hid_write_we_B_blk2 <= "1";
+                        else
+                            mem_g_hid_write_we_A_blk2 <= "1";
+                            mem_g_hid_write_we_B_blk2 <= "0";
+                        end if;
                     end if;
                 else -- We're not writing for this weight, so set the everything to 0
                     mem_g_hid_write_we_A_blk1 <= "0";
@@ -498,8 +556,13 @@ begin
                 if (weight_dest = O_INPUT) then
                     -- If there is no data in memory or we're reading from block 2, write to block 1
                     if (block_sel = BLOCK2 or block_sel = NONE) then 
-                        mem_o_in_write_we_A_blk1 <= "1";
-                        mem_o_in_write_we_B_blk1 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_o_in_write_we_A_blk1 <= "0";
+                            mem_o_in_write_we_B_blk1 <= "1";
+                        else
+                            mem_o_in_write_we_A_blk1 <= "1";
+                            mem_o_in_write_we_B_blk1 <= "0";
+                        end if;
 
                         mem_o_in_write_we_A_blk2 <= "0";
                         mem_o_in_write_we_B_blk2 <= "0";
@@ -508,8 +571,13 @@ begin
                         mem_o_in_write_we_A_blk1 <= "0";
                         mem_o_in_write_we_B_blk1 <= "0";
 
-                        mem_o_in_write_we_A_blk2 <= "1";
-                        mem_o_in_write_we_B_blk2 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_o_in_write_we_A_blk2 <= "0";
+                            mem_o_in_write_we_B_blk2 <= "1";
+                        else
+                            mem_o_in_write_we_A_blk2 <= "1";
+                            mem_o_in_write_we_B_blk2 <= "0";
+                        end if;
                     end if;
                 else -- We're not writing for this weight, so set the everything to 0
                     mem_o_in_write_we_A_blk1 <= "0";
@@ -522,8 +590,13 @@ begin
                 if (weight_dest = O_HIDDEN) then
                     -- If there is no data in memory or we're reading from block 2, write to block 1
                     if (block_sel = BLOCK2 or block_sel = NONE) then 
-                        mem_o_hid_write_we_A_blk1 <= "1";
-                        mem_o_hid_write_we_B_blk1 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_o_hid_write_we_A_blk1 <= "0";
+                            mem_o_hid_write_we_B_blk1 <= "1";
+                        else
+                            mem_o_hid_write_we_A_blk1 <= "1";
+                            mem_o_hid_write_we_B_blk1 <= "0";
+                        end if;
 
                         mem_o_hid_write_we_A_blk2 <= "0";
                         mem_o_hid_write_we_B_blk2 <= "0";
@@ -532,8 +605,13 @@ begin
                         mem_o_hid_write_we_A_blk1 <= "0";
                         mem_o_hid_write_we_B_blk1 <= "0";
 
-                        mem_o_hid_write_we_A_blk2 <= "1";
-                        mem_o_hid_write_we_B_blk2 <= "1";
+                        if s_axis_write_bus_dest(0) = '0' then
+                            mem_o_hid_write_we_A_blk2 <= "0";
+                            mem_o_hid_write_we_B_blk2 <= "1";
+                        else
+                            mem_o_hid_write_we_A_blk2 <= "1";
+                            mem_o_hid_write_we_B_blk2 <= "0";
+                        end if;
                     end if;
                 else -- We're not writing for this weight, so set the everything to 0
                     mem_o_hid_write_we_A_blk1 <= "0";

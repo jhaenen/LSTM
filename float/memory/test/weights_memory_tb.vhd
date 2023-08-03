@@ -26,8 +26,8 @@ architecture sim of weights_memory_tb is
           s_axis_counter_last : in STD_LOGIC_VECTOR ( 1 downto 0 );
           s_axis_counter_valid : in STD_LOGIC;
           s_axis_counter_ready : out STD_LOGIC;
-          s_axis_write_bus_data : in STD_LOGIC_VECTOR ( 6143 downto 0 );
-          s_axis_write_bus_dest : in STD_LOGIC_VECTOR ( 8 downto 0 );
+          s_axis_write_bus_data : in STD_LOGIC_VECTOR ( 3071 downto 0 );
+          s_axis_write_bus_dest : in STD_LOGIC_VECTOR ( 9 downto 0 );
           s_axis_write_bus_last : in STD_LOGIC;
           s_axis_write_bus_user : in STD_LOGIC_VECTOR ( 2 downto 0 );
           s_axis_write_bus_valid : in STD_LOGIC;
@@ -55,16 +55,21 @@ architecture sim of weights_memory_tb is
     signal s_axis_counter_valid : std_logic := '0';
     signal s_axis_counter_ready : std_logic := '0';
 
-    signal s_axis_write_bus_data : std_logic_vector (6143 downto 0) := (others => '0');
-    signal s_axis_write_bus_dest : std_logic_vector (8 downto 0) := (others => '0');
+    signal s_axis_write_bus_data : std_logic_vector (3071 downto 0) := (others => '0');
+    signal s_axis_write_bus_dest : std_logic_vector (9 downto 0) := (others => '0');
     signal s_axis_write_bus_last : std_logic := '0';
     signal s_axis_write_bus_user : weight_dest_t := I_INPUT;
     signal s_axis_write_bus_valid : std_logic := '0';
     signal s_axis_write_bus_ready : std_logic := '0';
 
+    
+
 begin
+    
+
         -- Testbench process
     process
+        variable write_data : std_logic_vector (6143 downto 0) := (others => '0');
     begin
         wait for clk_period * 10;
 
@@ -76,16 +81,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(0, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(0, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -95,16 +106,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(1, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(1, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -114,16 +131,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(2, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(2, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -133,16 +156,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(3, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(3, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -152,16 +181,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(4, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(4, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -171,16 +206,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(5, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(5, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -190,16 +231,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(6, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(6, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -209,20 +256,26 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(7, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(7, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
+            
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
 
             if i = 7 then
                 s_axis_write_bus_last <= '1';
             end if;
-            
+
             wait for clk_period;
         end loop;
 
@@ -259,16 +312,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(8, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(0, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -278,16 +337,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(9, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(1, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -297,16 +362,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(10, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(2, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -316,16 +387,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(11, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(3, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -335,16 +412,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(12, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(4, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -354,16 +437,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(13, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(5, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -373,16 +462,22 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(14, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(6, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
             
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
+
             wait for clk_period;
         end loop;
 
@@ -392,20 +487,25 @@ begin
         -- Loop 8 times
         for i in 0 to 7 loop 
             -- Set the uppper nibble to 0x0
-            s_axis_write_bus_data(6143 downto 6140) <= std_logic_vector(to_unsigned(15, 4));
+            write_data(6143 downto 6140) := std_logic_vector(to_unsigned(7, 4));
 
             -- loop over every remaining nibble and set it to the current loop index
             for j in (6140/4) - 1 downto 0 loop
-                s_axis_write_bus_data(j*4+3 downto j*4) <= std_logic_vector(to_unsigned(i, 4));
+                write_data(j*4+3 downto j*4) := std_logic_vector(to_unsigned(i, 4));
             end loop;
 
             -- Set the destination to the current loop index
-            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9));
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '0';
+            s_axis_write_bus_data <= write_data(3071 downto 0);
+            
+            wait for clk_period;
+
+            s_axis_write_bus_dest <= std_logic_vector(to_unsigned(i, 9)) & '1';
+            s_axis_write_bus_data <= write_data(6143 downto 3072);
 
             if i = 7 then
                 s_axis_write_bus_last <= '1';
             end if;
-            
             wait for clk_period;
         end loop;
 
