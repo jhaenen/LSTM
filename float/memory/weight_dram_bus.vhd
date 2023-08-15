@@ -11,7 +11,7 @@ entity weight_dram_bus is
         -- DRAM bus interface
         data_bus : in std_logic_vector(511 downto 0);
         data_bus_valid : in std_logic;
-        data_bus_state : in std_logic_vector(3 downto 0);
+        data_bus_state : in std_logic_vector(4 downto 0);
         data_bus_state_valid : in std_logic;
         data_bus_dest : in std_logic_vector(18 downto 0);
         data_bus_last : in std_logic_vector(1 downto 0);

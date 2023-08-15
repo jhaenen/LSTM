@@ -262,26 +262,27 @@ package body types is
     end function sl_to_valid;
 
     function bus_states_to_slv (bus_states : in bus_states_t) return std_logic_vector is
-        variable result : std_logic_vector(3 downto 0);
+        variable result : std_logic_vector(4 downto 0);
     begin
         case bus_states is
-            when IDLE => result := "0000";
-            when READ_C_T => result := "0001";
-            when READ_I_B => result := "0010";
-            when READ_F_B => result := "0011";
-            when READ_G_B => result := "0100";
-            when READ_O_B => result := "0101";
-            when WRITE_PREV_H => result := "0110";
-            when READ_NEXT_H => result := "0111";
-            when READ_I_IN_W => result := "1000";
-            when READ_I_HID_W => result := "1001";
-            when READ_F_IN_W => result := "1010";
-            when READ_F_HID_W => result := "1011";
-            when READ_G_IN_W => result := "1100";
-            when READ_G_HID_W => result := "1101";
-            when READ_O_IN_W => result := "1110";
-            when READ_O_HID_W => result := "1111";
-            when others => result := "0000";
+            when IDLE => result := "00000";
+            when READ_C_T => result := "00001";
+            when READ_I_B => result := "00010";
+            when READ_F_B => result := "00011";
+            when READ_G_B => result := "00100";
+            when READ_O_B => result := "00101";
+            when WRITE_PREV_H => result := "00110";
+            when READ_NEXT_H => result := "00111";
+            when READ_I_IN_W => result := "01000";
+            when READ_I_HID_W => result := "01001";
+            when READ_F_IN_W => result := "01010";
+            when READ_F_HID_W => result := "01011";
+            when READ_G_IN_W => result := "01100";
+            when READ_G_HID_W => result := "01101";
+            when READ_O_IN_W => result := "01110";
+            when READ_O_HID_W => result := "01111";
+            when WRITE_C_T => result := "10000";
+            when others => result := "00000";
         end case;
         return result;
     end function bus_states_to_slv;
@@ -290,22 +291,23 @@ package body types is
         variable result : bus_states_t;
     begin
         case slv is
-            when "0000" => result := IDLE;
-            when "0001" => result := READ_C_T;
-            when "0010" => result := READ_I_B;
-            when "0011" => result := READ_F_B;
-            when "0100" => result := READ_G_B;
-            when "0101" => result := READ_O_B;
-            when "0110" => result := WRITE_PREV_H;
-            when "0111" => result := READ_NEXT_H;
-            when "1000" => result := READ_I_IN_W;
-            when "1001" => result := READ_I_HID_W;
-            when "1010" => result := READ_F_IN_W;
-            when "1011" => result := READ_F_HID_W;
-            when "1100" => result := READ_G_IN_W;
-            when "1101" => result := READ_G_HID_W;
-            when "1110" => result := READ_O_IN_W;
-            when "1111" => result := READ_O_HID_W;
+            when "00000" => result := IDLE;
+            when "00001" => result := READ_C_T;
+            when "00010" => result := READ_I_B;
+            when "00011" => result := READ_F_B;
+            when "00100" => result := READ_G_B;
+            when "00101" => result := READ_O_B;
+            when "00110" => result := WRITE_PREV_H;
+            when "00111" => result := READ_NEXT_H;
+            when "01000" => result := READ_I_IN_W;
+            when "01001" => result := READ_I_HID_W;
+            when "01010" => result := READ_F_IN_W;
+            when "01011" => result := READ_F_HID_W;
+            when "01100" => result := READ_G_IN_W;
+            when "01101" => result := READ_G_HID_W;
+            when "01110" => result := READ_O_IN_W;
+            when "01111" => result := READ_O_HID_W;
+            when "10000" => result := WRITE_C_T;
             when others => result := IDLE;
         end case;
         return result;

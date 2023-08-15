@@ -11,7 +11,7 @@ entity in_out_dram_bus is
         -- DRAM bus interface
         data_bus : inout std_logic_vector(511 downto 0) := (others => 'Z');
         data_bus_valid : inout std_logic := 'Z';
-        data_bus_state : in std_logic_vector(3 downto 0);
+        data_bus_state : in std_logic_vector(4 downto 0);
         data_bus_state_valid : in std_logic;
         data_bus_dest : inout std_logic_vector(18 downto 0) := (others => 'Z');
         data_bus_last : inout std_logic := 'Z';
