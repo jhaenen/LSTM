@@ -9,12 +9,11 @@ entity weight_dram_bus is
         clk : in std_logic;
 
         -- DRAM bus interface
-        data_bus : in std_logic_vector(511 downto 0);
-        data_bus_valid : in std_logic;
+        data_bus : inout std_logic_vector(511 downto 0) := (others => 'Z');
+        data_bus_valid : inout std_logic := 'Z';
         data_bus_state : in std_logic_vector(4 downto 0);
-        data_bus_state_valid : in std_logic;
-        data_bus_dest : in std_logic_vector(18 downto 0);
-        data_bus_last : in std_logic_vector(1 downto 0);
+        data_bus_dest : inout std_logic_vector(18 downto 0) := (others => 'Z');
+        data_bus_last : inout std_logic_vector(1 downto 0) := (others => 'Z');
 
         data_bus_ready : out std_logic;
 
@@ -47,15 +46,14 @@ architecture rtl of weight_dram_bus is
     constant max_addr : natural := 768;
 begin
     
-    bus_state <= slv_to_bus_states(data_bus_state) when data_bus_state_valid = '1' else IDLE;
-
+    bus_state <= slv_to_bus_states(data_bus_state);
     process (clk)
     begin
         if rising_edge(clk) then
             if buffer_valid = INVALID then
                 data_bus_ready <= '1';
 
-                if data_bus_valid = '1' and data_bus_state_valid = '1' then
+                if data_bus_valid = '1' then
                     data_buffer(read_pointer) <= data_bus;
 
                     if data_bus_last(1) = '1' then

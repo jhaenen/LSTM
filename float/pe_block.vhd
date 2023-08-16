@@ -38,12 +38,12 @@ entity pe_block is
         m_axis_hidden_out_valid : out std_logic;
         m_axis_hidden_out_ready : in std_logic;
 
-        s_axis_c_and_bias_data : inout std_logic_vector(511 downto 0);
-        s_axis_c_and_bias_valid : inout std_logic;
+        s_axis_c_and_bias_data : inout std_logic_vector(511 downto 0) := (others => 'Z');
+        s_axis_c_and_bias_valid : inout std_logic := 'Z';
         s_axis_c_and_bias_pe_ready : out std_logic;
         s_axis_c_and_bias_bus_ready : in std_logic;
-        s_axis_c_and_bias_dest : inout std_logic_vector(18 downto 0);
-        s_axis_c_and_bias_last : inout std_logic;
+        s_axis_c_and_bias_dest : inout std_logic_vector(18 downto 0) := (others => 'Z');
+        s_axis_c_and_bias_last : inout std_logic_vector(1 downto 0) := (others => 'Z');
         s_axis_c_and_bias_bus_state : in std_logic_vector(4 downto 0)
     );
 end entity pe_block;
@@ -327,21 +327,22 @@ begin
                                     s_axis_c_and_bias_dest <= std_logic_vector(to_unsigned(write_counter, 19));
 
                                     if write_counter = 11 then
-                                        s_axis_c_and_bias_last <= '1';
+                                        s_axis_c_and_bias_last <= "01";
                                         write_counter := 0;
                                     else
+                                        s_axis_c_and_bias_last <= "00";
                                         write_counter := write_counter + 1;
                                     end if;
                                 else
                                     s_axis_c_and_bias_valid <= '0';
                                     s_axis_c_and_bias_dest <= (others => '0');
-                                    s_axis_c_and_bias_last <= '0';
+                                    s_axis_c_and_bias_last <= (others => '0');
                                 end if;
                             else
                                 s_axis_c_and_bias_data <= (others => 'Z');
                                 s_axis_c_and_bias_valid <= 'Z';
                                 s_axis_c_and_bias_dest <= (others => 'Z');
-                                s_axis_c_and_bias_last <= 'Z';
+                                s_axis_c_and_bias_last <= (others => 'Z');
                             end if;
 
                             c_t_in_data <= (others => (others => '0'));
@@ -362,7 +363,7 @@ begin
                         s_axis_c_and_bias_data <= (others => 'Z');
                         s_axis_c_and_bias_valid <= 'Z';
                         s_axis_c_and_bias_dest <= (others => 'Z');
-                        s_axis_c_and_bias_last <= 'Z';
+                        s_axis_c_and_bias_last <= (others => 'Z');
 
                         c_t_in_data <= (others => (others => '0'));
                         c_t_in_valid <= (others => '0');
@@ -383,7 +384,7 @@ begin
                 s_axis_c_and_bias_data <= (others => 'Z');
                 s_axis_c_and_bias_valid <= 'Z';
                 s_axis_c_and_bias_dest <= (others => 'Z');
-                s_axis_c_and_bias_last <= 'Z';
+                s_axis_c_and_bias_last <= (others => 'Z');
 
                 c_t_in_data <= (others => (others => '0'));
                 c_t_in_valid <= (others => '0');

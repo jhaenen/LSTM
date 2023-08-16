@@ -15,7 +15,7 @@ entity dram_manager is
         data_bus_state : out std_logic_vector(4 downto 0);
         data_bus_state_valid : out std_logic := '0';
         data_bus_dest : inout std_logic_vector(18 downto 0) := (others => 'Z');
-        data_bus_last : inout std_logic := 'Z';
+        data_bus_last : inout std_logic_vector(1 downto 0) := (others => 'Z');
 
         data_bus_hidden_out_ready : out std_logic;
         data_bus_c_t_ready : out std_logic;
@@ -145,7 +145,7 @@ begin
 
         variable write_ready : boolean := false;
 
-        procedure read_request(data_type : in data_t; layer : in layer_info_t; read_length : in natural; next_state : in bus_states_t) is
+        procedure read_request(data_type : in data_t; layer : in layer_info_t; read_length : in natural; next_state : in bus_states_t; last : in boolean) is
             variable read_address : dram_address_t := (index => 0, data => O_INPUT_WEIGHT, layer => LAYER3);
             variable read_response : axi_response_t := OKAY;
         begin
@@ -166,7 +166,7 @@ begin
 
                     -- Disable the data bus
                     data_bus <= (others => '0');
-                    data_bus_last <= '0';
+                    data_bus_last <= (others => '0');
                     data_bus_valid <= '0';
                     data_bus_dest <= (others => '0');
                 else
@@ -185,15 +185,21 @@ begin
 
                             if read_counter >= read_length then
                                 next_bus_state <= next_state;
-                                data_bus_last <= '1';
+                                data_bus_last(0) <= '1';
                                 read_counter := 0;
+
+                                if last then
+                                    data_bus_last(1) <= '1';
+                                else
+                                    data_bus_last(1) <= '0';
+                                end if;
                             else
-                                data_bus_last <= '0';
+                                data_bus_last <= (others => '0');
                             end if;
                         end if;
                     else
                         data_bus <= (others => '0');
-                        data_bus_last <= '0';
+                        data_bus_last <= (others => '0');
                         data_bus_valid <= '0';
                         data_bus_dest <= (others => '0');
                     end if;
@@ -201,7 +207,7 @@ begin
             else
                 data_bus <= (others => '0');
                 data_bus_valid <= '0';
-                data_bus_last <= '0';
+                data_bus_last <= (others => '0');
                 data_bus_dest <= (others => '0');
             end if;
 
@@ -228,7 +234,7 @@ begin
                 write_ready := true;
 
                 data_bus <= (others => 'Z');
-                data_bus_last <= 'Z';
+                data_bus_last <= (others => 'Z');
                 data_bus_valid <= 'Z';
                 data_bus_dest <= (others => 'Z');
 
@@ -271,7 +277,7 @@ begin
 
                         s_axis_write_data <= data_bus;
                         s_axis_write_data_valid <= '1';
-                        s_axis_write_last <= data_bus_last;
+                        s_axis_write_last <= data_bus_last(0);
                         s_axis_write_strb <= (others => '1');
                     else
                         s_axis_write_data_valid <= '0';
@@ -289,7 +295,7 @@ begin
                     end if;
                 else
                     data_bus <= (others => 'Z');
-                    data_bus_last <= 'Z';
+                    data_bus_last <= (others => 'Z');
                     data_bus_valid <= 'Z';
                     data_bus_dest <= (others => 'Z');
 
@@ -352,56 +358,56 @@ begin
                     s_axis_write_response_ready <= '0';
 
                     data_bus <= (others => 'Z');
-                    data_bus_last <= 'Z';
+                    data_bus_last <= (others => 'Z');
                     data_bus_valid <= 'Z';
                     data_bus_dest <= (others => 'Z');
                 when READ_C_T =>
                     if data_bus_c_and_biases_ready = '1' then
                         layer := current_layer;
-                        read_request(C_T, layer, vector_size, READ_I_B);
+                        read_request(C_T, layer, vector_size, READ_I_B, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
                 when READ_I_B =>
                     if data_bus_c_and_biases_ready = '1' then
                         layer := current_layer;
-                        read_request(I_BIAS, layer, vector_size, READ_F_B);
+                        read_request(I_BIAS, layer, vector_size, READ_F_B, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
                 when READ_F_B =>
                     if data_bus_c_and_biases_ready = '1' then
                         layer := current_layer;
-                        read_request(F_BIAS, layer, vector_size, READ_G_B);
+                        read_request(F_BIAS, layer, vector_size, READ_G_B, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
                 when READ_G_B =>
                     if data_bus_c_and_biases_ready = '1' then
                         layer := current_layer;
-                        read_request(G_BIAS, layer, vector_size, READ_O_B);
+                        read_request(G_BIAS, layer, vector_size, READ_O_B, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
                 when READ_O_B =>
                     if data_bus_c_and_biases_ready = '1' then
                         layer := current_layer;
-                        read_request(O_BIAS, layer, vector_size, WRITE_PREV_H);
+                        read_request(O_BIAS, layer, vector_size, WRITE_PREV_H, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
@@ -409,7 +415,7 @@ begin
                     if initial_layer then
                         next_bus_state <= READ_I_IN_W;
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     else
@@ -423,10 +429,10 @@ begin
                         layer := get_next_layer(current_layer);
                     end if;
                     if data_bus_weights_ready = '1' then
-                        read_request(I_INPUT_WEIGHT, layer, weight_size, READ_I_HID_W);
+                        read_request(I_INPUT_WEIGHT, layer, weight_size, READ_I_HID_W, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
@@ -437,10 +443,10 @@ begin
                         layer := get_next_layer(current_layer);
                     end if;
                     if data_bus_weights_ready = '1' then
-                        read_request(I_HIDDEN_WEIGHT, layer, weight_size, READ_F_IN_W);
+                        read_request(I_HIDDEN_WEIGHT, layer, weight_size, READ_F_IN_W, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
@@ -451,10 +457,10 @@ begin
                         layer := get_next_layer(current_layer);
                     end if;
                     if data_bus_weights_ready = '1' then
-                        read_request(F_INPUT_WEIGHT, layer, weight_size, READ_F_HID_W);
+                        read_request(F_INPUT_WEIGHT, layer, weight_size, READ_F_HID_W, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
@@ -465,10 +471,10 @@ begin
                         layer := get_next_layer(current_layer);
                     end if;
                     if data_bus_weights_ready = '1' then
-                        read_request(F_HIDDEN_WEIGHT, layer, weight_size, READ_G_IN_W);
+                        read_request(F_HIDDEN_WEIGHT, layer, weight_size, READ_G_IN_W, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
@@ -479,10 +485,10 @@ begin
                         layer := get_next_layer(current_layer);
                     end if;
                     if data_bus_weights_ready = '1' then
-                        read_request(G_INPUT_WEIGHT, layer, weight_size, READ_G_HID_W);
+                        read_request(G_INPUT_WEIGHT, layer, weight_size, READ_G_HID_W, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
@@ -493,10 +499,10 @@ begin
                         layer := get_next_layer(current_layer);
                     end if;
                     if data_bus_weights_ready = '1' then
-                        read_request(G_HIDDEN_WEIGHT, layer, weight_size, READ_O_IN_W);
+                        read_request(G_HIDDEN_WEIGHT, layer, weight_size, READ_O_IN_W, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
@@ -507,10 +513,10 @@ begin
                         layer := get_next_layer(current_layer);
                     end if;
                     if data_bus_weights_ready = '1' then
-                        read_request(O_INPUT_WEIGHT, layer, weight_size, READ_O_HID_W);
+                        read_request(O_INPUT_WEIGHT, layer, weight_size, READ_O_HID_W, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
@@ -521,20 +527,20 @@ begin
                         layer := get_next_layer(current_layer);
                     end if;
                     if data_bus_weights_ready = '1' then
-                        read_request(O_HIDDEN_WEIGHT, layer, weight_size, READ_NEXT_H);
+                        read_request(O_HIDDEN_WEIGHT, layer, weight_size, READ_NEXT_H, true);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
                 when READ_NEXT_H =>
                     if data_bus_hidden_in_ready = '1' then
                         layer := get_next_layer(current_layer);
-                        read_request(H_T, layer, vector_size, WRITE_C_T);
+                        read_request(H_T, layer, vector_size, WRITE_C_T, false);
                     else
                         data_bus <= (others => 'Z');
-                        data_bus_last <= 'Z';
+                        data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus_dest <= (others => 'Z');
                     end if;
