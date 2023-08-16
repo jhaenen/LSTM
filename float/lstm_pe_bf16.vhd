@@ -61,7 +61,29 @@ entity lstm_pe_bf16 is
         -- output
         M_AXIS_HIDDEN_OUT_tdata : out std_logic_vector(15 downto 0) := (others => '0');
         M_AXIS_HIDDEN_OUT_tvalid : out std_logic := '0';
-        M_AXIS_HIDDEN_OUT_tready : in std_logic
+        M_AXIS_HIDDEN_OUT_tready : in std_logic;
+
+        -- c_t and bias update
+        S_AXIS_C_AND_BIAS_IN_tready : out std_logic := '0';
+
+        S_AXIS_C_T_in_tdata : in std_logic_vector(15 downto 0);
+        S_AXIS_C_T_in_tvalid : in std_logic;
+
+        S_AXIS_C_T_out_tdata : out std_logic_vector(15 downto 0) := (others => '0');
+        S_AXIS_C_T_out_tvalid : out std_logic := '0';
+        S_AXIS_C_T_out_tready : in std_logic;
+
+        S_AXIS_I_BIAS_tdata : in std_logic_vector(15 downto 0);
+        S_AXIS_I_BIAS_tvalid : in std_logic;
+
+        S_AXIS_F_BIAS_tdata : in std_logic_vector(15 downto 0);
+        S_AXIS_F_BIAS_tvalid : in std_logic;
+
+        S_AXIS_G_BIAS_tdata : in std_logic_vector(15 downto 0);
+        S_AXIS_G_BIAS_tvalid : in std_logic;
+
+        S_AXIS_O_BIAS_tdata : in std_logic_vector(15 downto 0);
+        S_AXIS_O_BIAS_tvalid : in std_logic
     );
 end entity;
 
@@ -436,6 +458,10 @@ architecture behav of lstm_pe_bf16 is
 
     -- C buffer
     signal c_t : std_logic_vector(15 downto 0) := (others => '0');
+    signal i_bias : std_logic_vector(15 downto 0) := (others => '0');
+    signal f_bias : std_logic_vector(15 downto 0) := (others => '0');
+    signal g_bias : std_logic_vector(15 downto 0) := (others => '0');
+    signal o_bias : std_logic_vector(15 downto 0) := (others => '0');
 
     -- State machine with accumulate and post states
     type pe_state_t is (READY, RECEIVE, ACCUMULATE, POST);
@@ -809,6 +835,17 @@ begin
         end case;
     end process;
 
+    -- C_T output process
+    process (clk)
+    begin
+        if S_AXIS_C_T_out_tready = '1' then
+            S_AXIS_C_T_out_tdata <= c_t;
+            S_AXIS_C_T_out_tvalid <= '1';
+        else
+            S_AXIS_C_T_out_tvalid <= '0';
+        end if;
+    end process;
+
     -- Accumulation process
     process (clk)
         variable pe_state_next: pe_state_t;
@@ -867,6 +904,29 @@ begin
                         S_AXIS_WEIGHT_G_INPUT_tready <= '0';
                         S_AXIS_WEIGHT_G_HIDDEN_tready <= '0';
                     end if;
+
+                    -- C_T and bias are ready to be received
+                    S_AXIS_C_AND_BIAS_IN_tready <= '1';
+
+                    if S_AXIS_C_T_in_tvalid = '1' then
+                        c_t <= S_AXIS_C_T_in_tdata;
+                    end if;
+
+                    if S_AXIS_I_BIAS_tvalid = '1' then
+                        i_bias <= S_AXIS_I_BIAS_tdata;
+                    end if;
+
+                    if S_AXIS_F_BIAS_tvalid = '1' then
+                        f_bias <= S_AXIS_F_BIAS_tdata;
+                    end if;
+
+                    if S_AXIS_O_BIAS_tvalid = '1' then
+                        o_bias <= S_AXIS_O_BIAS_tdata;
+                    end if;
+
+                    if S_AXIS_G_BIAS_tvalid = '1' then
+                        g_bias <= S_AXIS_G_BIAS_tdata;
+                    end if;
                 when RECEIVE =>
                     -- Check if none of the last signals are raised
                     if (S_AXIS_DATA_IN_tlast = '0' and S_AXIS_HIDDEN_IN_tlast = '0' and
@@ -910,6 +970,29 @@ begin
                         -- Set the next state to accumulate
                         pe_state_next := ACCUMULATE;
                     end if;
+
+                     -- C_T and bias are ready to be received
+                    S_AXIS_C_AND_BIAS_IN_tready <= '1';
+
+                    if S_AXIS_C_T_in_tvalid = '1' then
+                        c_t <= S_AXIS_C_T_in_tdata;
+                    end if;
+ 
+                     if S_AXIS_I_BIAS_tvalid = '1' then
+                         i_bias <= S_AXIS_I_BIAS_tdata;
+                     end if;
+ 
+                     if S_AXIS_F_BIAS_tvalid = '1' then
+                         f_bias <= S_AXIS_F_BIAS_tdata;
+                     end if;
+ 
+                     if S_AXIS_O_BIAS_tvalid = '1' then
+                         o_bias <= S_AXIS_O_BIAS_tdata;
+                     end if;
+ 
+                     if S_AXIS_G_BIAS_tvalid = '1' then
+                         g_bias <= S_AXIS_G_BIAS_tdata;
+                     end if;
                 when ACCUMULATE =>
                     -- We are waiting for all the MACs to be finished so we cannot accept any more data
                     S_AXIS_DATA_IN_tready <= '0';
@@ -992,7 +1075,32 @@ begin
                         g_in_done := false;
                         g_hid_done := false;
                     end if;
+
+                     -- C_T and bias are ready to be received
+                    S_AXIS_C_AND_BIAS_IN_tready <= '1';
+
+                    if S_AXIS_C_T_in_tvalid = '1' then
+                        c_t <= S_AXIS_C_T_in_tdata;
+                    end if;
+ 
+                     if S_AXIS_I_BIAS_tvalid = '1' then
+                         i_bias <= S_AXIS_I_BIAS_tdata;
+                     end if;
+ 
+                     if S_AXIS_F_BIAS_tvalid = '1' then
+                         f_bias <= S_AXIS_F_BIAS_tdata;
+                     end if;
+ 
+                     if S_AXIS_O_BIAS_tvalid = '1' then
+                         o_bias <= S_AXIS_O_BIAS_tdata;
+                     end if;
+ 
+                     if S_AXIS_G_BIAS_tvalid = '1' then
+                         g_bias <= S_AXIS_G_BIAS_tdata;
+                     end if;
                 when POST =>
+                    S_AXIS_C_AND_BIAS_IN_tready <= '0';
+
                     case pe_post_state is
                         when S1 =>
                             -- Stage 1: The output of the i, g, and f macs are added together. So input + hidden
@@ -1094,7 +1202,6 @@ begin
                             end if;
                         when S2 =>
                             -- Stage 2: The output of the i, g, and f of the previous stage are added with their corresponding biases
-                            -- NOTE: the biases are not implemented yet, so they are just set to 0
 
                             -- Buffers
                             -- 1: i_inp + i_hid
@@ -1113,7 +1220,7 @@ begin
                                 -- Set the inputs to the adder
                                 adder_1_A_tdata <= post_buffer_1;
                                 adder_1_A_tvalid <= '1';
-                                adder_1_B_tdata <= (others => '0');
+                                adder_1_B_tdata <= i_bias;
                                 adder_1_B_tvalid <= '1';
 
                                 adder_1_RESULT_tready <= '1';
@@ -1142,7 +1249,7 @@ begin
                                 -- Set the inputs to the adder
                                 adder_2_A_tdata <= post_buffer_2;
                                 adder_2_A_tvalid <= '1';
-                                adder_2_B_tdata <= (others => '0');
+                                adder_2_B_tdata <= g_bias;
                                 adder_2_B_tvalid <= '1';
 
                                 adder_2_RESULT_tready <= '1';
@@ -1171,7 +1278,7 @@ begin
                                 -- Set the inputs to the adder
                                 adder_3_A_tdata <= post_buffer_3;
                                 adder_3_A_tvalid <= '1';
-                                adder_3_B_tdata <= (others => '0');
+                                adder_3_B_tdata <= f_bias;
                                 adder_3_B_tvalid <= '1';
 
                                 adder_3_RESULT_tready <= '1';
@@ -1726,7 +1833,6 @@ begin
                         when S7 =>
                             -- Stage 7: Add the results of the multiplications together
                             -- Additionally the O and O_bias are added to each other
-                            -- NOTE: Biases are not implemented yet so 0 is used instead
 
                             -- Buffers
                             -- 1: i_sig * g_tanh
@@ -1778,7 +1884,7 @@ begin
                                 adder_2_A_tdata <= post_buffer_4;
                                 adder_2_A_tvalid <= '1';
 
-                                adder_2_B_tdata <= (others => '0');
+                                adder_2_B_tdata <= o_bias;
                                 adder_2_B_tvalid <= '1';
 
                                 adder_2_RESULT_tready <= '1';
