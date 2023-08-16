@@ -6,84 +6,53 @@ entity lstm_pe_bf16 is
     port (
         clk     : in std_logic;
 
-        -- input
-        S_AXIS_DATA_IN_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_DATA_IN_tvalid : in std_logic;
-        S_AXIS_DATA_IN_tready : out std_logic := '0';
-        S_AXIS_DATA_IN_tlast : in std_logic;
+        s_axis_pe_ready : out std_logic := '0';
+        s_axis_pe_valid : in std_logic := '0';
+        s_axis_pe_last : in std_logic := '0';
 
-        S_AXIS_HIDDEN_IN_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_HIDDEN_IN_tvalid : in std_logic;
-        S_AXIS_HIDDEN_IN_tready : out std_logic := '0';
-        S_AXIS_HIDDEN_IN_tlast : in std_logic;
+        -- input
+        s_axis_data_in : in std_logic_vector(15 downto 0);
+        s_axis_hidden_data : in std_logic_vector(15 downto 0);
 
         -- weights
-        S_AXIS_WEIGHT_I_input_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_WEIGHT_I_input_tvalid : in std_logic;
-        S_AXIS_WEIGHT_I_input_tready : out std_logic := '0';
-        S_AXIS_WEIGHT_I_input_tlast : in std_logic;
+        s_axis_weight_i_input_data : in std_logic_vector(15 downto 0);
+        s_axis_weight_i_hidden_data : in std_logic_vector(15 downto 0);
 
-        S_AXIS_WEIGHT_I_hidden_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_WEIGHT_I_hidden_tvalid : in std_logic;
-        S_AXIS_WEIGHT_I_hidden_tready : out std_logic := '0';
-        S_AXIS_WEIGHT_I_hidden_tlast : in std_logic;
+        s_axis_weight_f_input_data : in std_logic_vector(15 downto 0);
+        s_axis_weight_f_hidden_data : in std_logic_vector(15 downto 0);
 
-        S_AXIS_WEIGHT_G_input_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_WEIGHT_G_input_tvalid : in std_logic;
-        S_AXIS_WEIGHT_G_input_tready : out std_logic := '0'; 
-        S_AXIS_WEIGHT_G_input_tlast : in std_logic;
+        s_axis_weight_g_input_data : in std_logic_vector(15 downto 0);
+        s_axis_weight_g_hidden_data : in std_logic_vector(15 downto 0);
 
-        S_AXIS_WEIGHT_G_hidden_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_WEIGHT_G_hidden_tvalid : in std_logic;
-        S_AXIS_WEIGHT_G_hidden_tready : out std_logic := '0';
-        S_AXIS_WEIGHT_G_hidden_tlast : in std_logic;
-
-        S_AXIS_WEIGHT_F_input_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_WEIGHT_F_input_tvalid : in std_logic;
-        S_AXIS_WEIGHT_F_input_tready : out std_logic := '0';
-        S_AXIS_WEIGHT_F_input_tlast : in std_logic;
-
-        S_AXIS_WEIGHT_F_hidden_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_WEIGHT_F_hidden_tvalid : in std_logic;
-        S_AXIS_WEIGHT_F_hidden_tready : out std_logic := '0';
-        S_AXIS_WEIGHT_F_hidden_tlast : in std_logic;
-
-        S_AXIS_WEIGHT_O_input_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_WEIGHT_O_input_tvalid : in std_logic;
-        S_AXIS_WEIGHT_O_input_tready : out std_logic := '0';
-        S_AXIS_WEIGHT_O_input_tlast : in std_logic;
-
-        S_AXIS_WEIGHT_O_hidden_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_WEIGHT_O_hidden_tvalid : in std_logic;
-        S_AXIS_WEIGHT_O_hidden_tready : out std_logic := '0';
-        S_AXIS_WEIGHT_O_hidden_tlast : in std_logic;
+        s_axis_weight_o_input_data : in std_logic_vector(15 downto 0);
+        s_axis_weight_o_hidden_data : in std_logic_vector(15 downto 0);
 
         -- output
-        M_AXIS_HIDDEN_OUT_tdata : out std_logic_vector(15 downto 0) := (others => '0');
-        M_AXIS_HIDDEN_OUT_tvalid : out std_logic := '0';
-        M_AXIS_HIDDEN_OUT_tready : in std_logic;
+        m_axis_hidden_out_data : out std_logic_vector(15 downto 0) := (others => '0');
+        m_axis_hidden_out_valid : out std_logic := '0';
+        m_axis_hidden_out_ready : in std_logic;
 
         -- c_t and bias update
-        S_AXIS_C_AND_BIAS_IN_tready : out std_logic := '0';
+        s_axis_c_in_and_bias_ready : out std_logic := '0';
 
-        S_AXIS_C_T_in_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_C_T_in_tvalid : in std_logic;
+        s_axis_c_t_in_data : in std_logic_vector(15 downto 0);
+        s_axis_c_t_in_valid : in std_logic;
 
-        S_AXIS_C_T_out_tdata : out std_logic_vector(15 downto 0) := (others => '0');
-        S_AXIS_C_T_out_tvalid : out std_logic := '0';
-        S_AXIS_C_T_out_tready : in std_logic;
+        s_axis_c_t_out_data : out std_logic_vector(15 downto 0) := (others => '0');
+        s_axis_c_t_out_valid : out std_logic := '0';
+        s_axis_c_t_out_ready : in std_logic;
 
-        S_AXIS_I_BIAS_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_I_BIAS_tvalid : in std_logic;
+        s_axis_i_bias_data : in std_logic_vector(15 downto 0);
+        s_axis_i_bias_valid : in std_logic;
 
-        S_AXIS_F_BIAS_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_F_BIAS_tvalid : in std_logic;
+        s_axis_f_bias_data : in std_logic_vector(15 downto 0);
+        s_axis_f_bias_valid : in std_logic;
 
-        S_AXIS_G_BIAS_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_G_BIAS_tvalid : in std_logic;
+        s_axis_g_bias_data : in std_logic_vector(15 downto 0);
+        s_axis_g_bias_valid : in std_logic;
 
-        S_AXIS_O_BIAS_tdata : in std_logic_vector(15 downto 0);
-        S_AXIS_O_BIAS_tvalid : in std_logic
+        s_axis_o_bias_data : in std_logic_vector(15 downto 0);
+        s_axis_o_bias_valid : in std_logic
     );
 end entity;
 
@@ -496,15 +465,12 @@ begin
     f_in_mac_weight_ready <= mult_3_B_tready;
 
     process (pe_state, mult_1_A_pb, mult_1_B_pb, mult_2_A_pb, mult_2_B_pb, mult_3_A_pb, mult_3_B_pb, 
-        S_AXIS_DATA_IN_tdata, S_AXIS_DATA_IN_tvalid, S_AXIS_DATA_IN_tlast, 
-        S_AXIS_WEIGHT_I_input_tdata, S_AXIS_WEIGHT_I_input_tvalid, S_AXIS_WEIGHT_I_input_tlast, 
-        S_AXIS_WEIGHT_I_hidden_tdata, S_AXIS_WEIGHT_I_hidden_tvalid, S_AXIS_WEIGHT_I_hidden_tlast, 
-        S_AXIS_WEIGHT_F_input_tdata, S_AXIS_WEIGHT_F_input_tvalid, S_AXIS_WEIGHT_F_input_tlast, 
-        S_AXIS_WEIGHT_F_hidden_tdata, S_AXIS_WEIGHT_F_hidden_tvalid, S_AXIS_WEIGHT_F_hidden_tlast, 
-        S_AXIS_WEIGHT_O_input_tdata, S_AXIS_WEIGHT_O_input_tvalid, S_AXIS_WEIGHT_O_input_tlast, 
-        S_AXIS_WEIGHT_O_hidden_tdata, S_AXIS_WEIGHT_O_hidden_tvalid, S_AXIS_WEIGHT_O_hidden_tlast, 
-        S_AXIS_WEIGHT_G_input_tdata, S_AXIS_WEIGHT_G_input_tvalid, S_AXIS_WEIGHT_G_input_tlast, 
-        S_AXIS_WEIGHT_G_hidden_tdata, S_AXIS_WEIGHT_G_hidden_tvalid, S_AXIS_WEIGHT_G_hidden_tlast,
+        s_axis_pe_last, s_axis_pe_valid,
+        s_axis_data_in, s_axis_hidden_data,
+        s_axis_weight_i_input_data, s_axis_weight_i_hidden_data,
+        s_axis_weight_f_input_data, s_axis_weight_f_hidden_data,
+        s_axis_weight_o_input_data, s_axis_weight_o_hidden_data,
+        s_axis_weight_g_input_data, s_axis_weight_g_hidden_data,
         post_buffer_1, post_buffer_2, post_buffer_3, 
         post_buffer_4, post_buffer_5, post_buffer_6, 
         post_buffer_7, post_buffer_8, post_buffer_9, 
@@ -514,95 +480,95 @@ begin
         case pe_state is
             when READY =>
                 -- Route the inputs of the multipliers to the correct mac inputs
-                mult_1_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_1_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_1_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_1_A_tdata <= s_axis_data_in;
+                mult_1_A_tvalid <= s_axis_pe_valid;
+                mult_1_A_tlast <= s_axis_pe_last;
 
-                mult_1_B_tdata <= S_AXIS_WEIGHT_I_input_tdata;
-                mult_1_B_tvalid <= S_AXIS_WEIGHT_I_input_tvalid;
-                mult_1_B_tlast <= S_AXIS_WEIGHT_I_input_tlast;
+                mult_1_B_tdata <= s_axis_weight_i_input_data;
+                mult_1_B_tvalid <= s_axis_pe_valid;
+                mult_1_B_tlast <= s_axis_pe_last;
 
                 mult_1_tdest <= "0";
 
-                mult_2_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_2_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_2_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_2_A_tdata <= s_axis_hidden_data;
+                mult_2_A_tvalid <= s_axis_pe_valid;
+                mult_2_A_tlast <= s_axis_pe_last;
 
-                mult_2_B_tdata <= S_AXIS_WEIGHT_I_hidden_tdata;
-                mult_2_B_tvalid <= S_AXIS_WEIGHT_I_hidden_tvalid;
-                mult_2_B_tlast <= S_AXIS_WEIGHT_I_hidden_tlast;
+                mult_2_B_tdata <= s_axis_weight_i_hidden_data;
+                mult_2_B_tvalid <= s_axis_pe_valid;
+                mult_2_B_tlast <= s_axis_pe_last;
 
                 mult_2_tdest <= "0";
 
-                mult_3_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_3_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_3_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_3_A_tdata <= s_axis_data_in;
+                mult_3_A_tvalid <= s_axis_pe_valid;
+                mult_3_A_tlast <= s_axis_pe_last;
 
-                mult_3_B_tdata <= S_AXIS_WEIGHT_F_input_tdata;
-                mult_3_B_tvalid <= S_AXIS_WEIGHT_F_input_tvalid;
-                mult_3_B_tlast <= S_AXIS_WEIGHT_F_input_tlast;
+                mult_3_B_tdata <= s_axis_weight_f_input_data;
+                mult_3_B_tvalid <= s_axis_pe_valid;
+                mult_3_B_tlast <= s_axis_pe_last;
 
                 mult_3_tdest <= "0";
             when RECEIVE =>
                 -- Route the inputs of the multipliers to the correct mac inputs
-                mult_1_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_1_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_1_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_1_A_tdata <= s_axis_data_in;
+                mult_1_A_tvalid <= s_axis_pe_valid;
+                mult_1_A_tlast <= s_axis_pe_last;
 
-                mult_1_B_tdata <= S_AXIS_WEIGHT_I_input_tdata;
-                mult_1_B_tvalid <= S_AXIS_WEIGHT_I_input_tvalid;
-                mult_1_B_tlast <= S_AXIS_WEIGHT_I_input_tlast;
+                mult_1_B_tdata <= s_axis_weight_i_input_data;
+                mult_1_B_tvalid <= s_axis_pe_valid;
+                mult_1_B_tlast <= s_axis_pe_last;
 
                 mult_1_tdest <= "0";
 
-                mult_2_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_2_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_2_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_2_A_tdata <= s_axis_hidden_data;
+                mult_2_A_tvalid <= s_axis_pe_valid;
+                mult_2_A_tlast <= s_axis_pe_last;
 
-                mult_2_B_tdata <= S_AXIS_WEIGHT_I_hidden_tdata;
-                mult_2_B_tvalid <= S_AXIS_WEIGHT_I_hidden_tvalid;
-                mult_2_B_tlast <= S_AXIS_WEIGHT_I_hidden_tlast;
+                mult_2_B_tdata <= s_axis_weight_i_hidden_data;
+                mult_2_B_tvalid <= s_axis_pe_valid;
+                mult_2_B_tlast <= s_axis_pe_last;
 
                 mult_2_tdest <= "0";
 
-                mult_3_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_3_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_3_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_3_A_tdata <= s_axis_data_in;
+                mult_3_A_tvalid <= s_axis_pe_valid;
+                mult_3_A_tlast <= s_axis_pe_last;
 
-                mult_3_B_tdata <= S_AXIS_WEIGHT_F_input_tdata;
-                mult_3_B_tvalid <= S_AXIS_WEIGHT_F_input_tvalid;
-                mult_3_B_tlast <= S_AXIS_WEIGHT_F_input_tlast;
+                mult_3_B_tdata <= s_axis_weight_f_input_data;
+                mult_3_B_tvalid <= s_axis_pe_valid;
+                mult_3_B_tlast <= s_axis_pe_last;
 
                 mult_3_tdest <= "0";
             when ACCUMULATE =>
                 -- Route the inputs of the multipliers to the correct mac inputs
-                mult_1_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_1_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_1_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_1_A_tdata <= s_axis_data_in;
+                mult_1_A_tvalid <= s_axis_pe_valid;
+                mult_1_A_tlast <= s_axis_pe_last;
 
-                mult_1_B_tdata <= S_AXIS_WEIGHT_I_input_tdata;
-                mult_1_B_tvalid <= S_AXIS_WEIGHT_I_input_tvalid;
-                mult_1_B_tlast <= S_AXIS_WEIGHT_I_input_tlast;
+                mult_1_B_tdata <= s_axis_weight_i_input_data;
+                mult_1_B_tvalid <= s_axis_pe_valid;
+                mult_1_B_tlast <= s_axis_pe_last;
 
                 mult_1_tdest <= "0";
 
-                mult_2_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_2_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_2_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_2_A_tdata <= s_axis_hidden_data;
+                mult_2_A_tvalid <= s_axis_pe_valid;
+                mult_2_A_tlast <= s_axis_pe_last;
 
-                mult_2_B_tdata <= S_AXIS_WEIGHT_I_hidden_tdata;
-                mult_2_B_tvalid <= S_AXIS_WEIGHT_I_hidden_tvalid;
-                mult_2_B_tlast <= S_AXIS_WEIGHT_I_hidden_tlast;
+                mult_2_B_tdata <= s_axis_weight_i_hidden_data;
+                mult_2_B_tvalid <= s_axis_pe_valid;
+                mult_2_B_tlast <= s_axis_pe_last;
 
                 mult_2_tdest <= "0";
 
-                mult_3_A_tdata <= S_AXIS_DATA_IN_tdata;
-                mult_3_A_tvalid <= S_AXIS_DATA_IN_tvalid;
-                mult_3_A_tlast <= S_AXIS_DATA_IN_tlast;
+                mult_3_A_tdata <= s_axis_data_in;
+                mult_3_A_tvalid <= s_axis_pe_valid;
+                mult_3_A_tlast <= s_axis_pe_last;
 
-                mult_3_B_tdata <= S_AXIS_WEIGHT_F_input_tdata;
-                mult_3_B_tvalid <= S_AXIS_WEIGHT_F_input_tvalid;
-                mult_3_B_tlast <= S_AXIS_WEIGHT_F_input_tlast;
+                mult_3_B_tdata <= s_axis_weight_f_input_data;
+                mult_3_B_tvalid <= s_axis_pe_valid;
+                mult_3_B_tlast <= s_axis_pe_last;
 
                 mult_3_tdest <= "0";
             when POST =>
@@ -838,11 +804,11 @@ begin
     -- C_T output process
     process (clk)
     begin
-        if S_AXIS_C_T_out_tready = '1' then
-            S_AXIS_C_T_out_tdata <= c_t;
-            S_AXIS_C_T_out_tvalid <= '1';
+        if s_axis_c_t_out_ready = '1' then
+            s_axis_c_t_out_data <= c_t;
+            s_axis_c_t_out_valid <= '1';
         else
-            S_AXIS_C_T_out_tvalid <= '0';
+            s_axis_c_t_out_valid <= '0';
         end if;
     end process;
 
@@ -871,144 +837,74 @@ begin
                         pe_state_next := RECEIVE;
 
                         -- Set all the ready signals to 1
-                        S_AXIS_DATA_IN_tready <= '1';
-                        S_AXIS_HIDDEN_IN_tready <= '1';
-
-                        S_AXIS_WEIGHT_I_input_tready <= '1';
-                        S_AXIS_WEIGHT_I_hidden_tready <= '1';
-
-                        S_AXIS_WEIGHT_F_INPUT_tready <= '1';
-                        S_AXIS_WEIGHT_F_HIDDEN_tready <= '1';
-
-                        S_AXIS_WEIGHT_O_INPUT_tready <= '1';
-                        S_AXIS_WEIGHT_O_HIDDEN_tready <= '1';
-
-                        S_AXIS_WEIGHT_G_INPUT_tready <= '1';
-                        S_AXIS_WEIGHT_G_HIDDEN_tready <= '1';
+                        s_axis_pe_ready <= '1';
                     else
                         pe_state_next := READY;
                         
                         -- Set all the ready signals to 0
-                        S_AXIS_DATA_IN_tready <= '0';
-                        S_AXIS_HIDDEN_IN_tready <= '0';
-
-                        S_AXIS_WEIGHT_I_input_tready <= '0';
-                        S_AXIS_WEIGHT_I_hidden_tready <= '0';
-
-                        S_AXIS_WEIGHT_F_INPUT_tready <= '0';
-                        S_AXIS_WEIGHT_F_HIDDEN_tready <= '0';
-
-                        S_AXIS_WEIGHT_O_INPUT_tready <= '0';
-                        S_AXIS_WEIGHT_O_HIDDEN_tready <= '0';
-
-                        S_AXIS_WEIGHT_G_INPUT_tready <= '0';
-                        S_AXIS_WEIGHT_G_HIDDEN_tready <= '0';
+                        s_axis_pe_ready <= '0';
                     end if;
 
                     -- C_T and bias are ready to be received
-                    S_AXIS_C_AND_BIAS_IN_tready <= '1';
+                    s_axis_c_in_and_bias_ready <= '1';
 
-                    if S_AXIS_C_T_in_tvalid = '1' then
-                        c_t <= S_AXIS_C_T_in_tdata;
+                    if s_axis_c_t_in_valid = '1' then
+                        c_t <= s_axis_c_t_in_data;
                     end if;
 
-                    if S_AXIS_I_BIAS_tvalid = '1' then
-                        i_bias <= S_AXIS_I_BIAS_tdata;
+                    if s_axis_i_bias_valid = '1' then
+                        i_bias <= s_axis_i_bias_data;
                     end if;
 
-                    if S_AXIS_F_BIAS_tvalid = '1' then
-                        f_bias <= S_AXIS_F_BIAS_tdata;
+                    if s_axis_f_bias_valid = '1' then
+                        f_bias <= s_axis_f_bias_data;
                     end if;
 
-                    if S_AXIS_O_BIAS_tvalid = '1' then
-                        o_bias <= S_AXIS_O_BIAS_tdata;
+                    if s_axis_o_bias_valid = '1' then
+                        o_bias <= s_axis_o_bias_data;
                     end if;
 
-                    if S_AXIS_G_BIAS_tvalid = '1' then
-                        g_bias <= S_AXIS_G_BIAS_tdata;
+                    if s_axis_g_bias_valid = '1' then
+                        g_bias <= s_axis_g_bias_data;
                     end if;
                 when RECEIVE =>
                     -- Check if none of the last signals are raised
-                    if (S_AXIS_DATA_IN_tlast = '0' and S_AXIS_HIDDEN_IN_tlast = '0' and
-                        S_AXIS_WEIGHT_I_input_tlast = '0' and S_AXIS_WEIGHT_I_hidden_tlast = '0' and
-                        S_AXIS_WEIGHT_F_input_tlast = '0' and S_AXIS_WEIGHT_F_hidden_tlast = '0' and
-                        S_AXIS_WEIGHT_O_input_tlast = '0' and S_AXIS_WEIGHT_O_hidden_tlast = '0' and
-                        S_AXIS_WEIGHT_G_input_tlast = '0' and S_AXIS_WEIGHT_G_hidden_tlast = '0') 
-                    then
+                    if (s_axis_pe_last = '0') then
                         -- Keep ready signals high
-                        S_AXIS_DATA_IN_tready <= '1';
-                        S_AXIS_HIDDEN_IN_tready <= '1';
-
-                        S_AXIS_WEIGHT_I_INPUT_tready <= '1';
-                        S_AXIS_WEIGHT_I_HIDDEN_tready <= '1';
-
-                        S_AXIS_WEIGHT_F_INPUT_tready <= '1';
-                        S_AXIS_WEIGHT_F_HIDDEN_tready <= '1';
-
-                        S_AXIS_WEIGHT_O_INPUT_tready <= '1';
-                        S_AXIS_WEIGHT_O_HIDDEN_tready <= '1';
-
-                        S_AXIS_WEIGHT_G_INPUT_tready <= '1';
-                        S_AXIS_WEIGHT_G_HIDDEN_tready <= '1';
+                        s_axis_pe_ready <= '1';
                     else
                         -- The last element has been received, cannot accept any more data
-                        S_AXIS_DATA_IN_tready <= '0';
-                        S_AXIS_HIDDEN_IN_tready <= '0';
-
-                        S_AXIS_WEIGHT_I_INPUT_tready <= '0';
-                        S_AXIS_WEIGHT_I_HIDDEN_tready <= '0';
-
-                        S_AXIS_WEIGHT_F_INPUT_tready <= '0';
-                        S_AXIS_WEIGHT_F_HIDDEN_tready <= '0';
-
-                        S_AXIS_WEIGHT_O_INPUT_tready <= '0';
-                        S_AXIS_WEIGHT_O_HIDDEN_tready <= '0';
-
-                        S_AXIS_WEIGHT_G_INPUT_tready <= '0';
-                        S_AXIS_WEIGHT_G_HIDDEN_tready <= '0';
+                        s_axis_pe_ready <= '0';
 
                         -- Set the next state to accumulate
                         pe_state_next := ACCUMULATE;
                     end if;
 
                      -- C_T and bias are ready to be received
-                    S_AXIS_C_AND_BIAS_IN_tready <= '1';
+                     s_axis_c_in_and_bias_ready <= '1';
 
-                    if S_AXIS_C_T_in_tvalid = '1' then
-                        c_t <= S_AXIS_C_T_in_tdata;
-                    end if;
- 
-                     if S_AXIS_I_BIAS_tvalid = '1' then
-                         i_bias <= S_AXIS_I_BIAS_tdata;
+                     if s_axis_c_t_in_valid = '1' then
+                         c_t <= s_axis_c_t_in_data;
                      end if;
  
-                     if S_AXIS_F_BIAS_tvalid = '1' then
-                         f_bias <= S_AXIS_F_BIAS_tdata;
+                     if s_axis_i_bias_valid = '1' then
+                         i_bias <= s_axis_i_bias_data;
                      end if;
  
-                     if S_AXIS_O_BIAS_tvalid = '1' then
-                         o_bias <= S_AXIS_O_BIAS_tdata;
+                     if s_axis_f_bias_valid = '1' then
+                         f_bias <= s_axis_f_bias_data;
                      end if;
  
-                     if S_AXIS_G_BIAS_tvalid = '1' then
-                         g_bias <= S_AXIS_G_BIAS_tdata;
+                     if s_axis_o_bias_valid = '1' then
+                         o_bias <= s_axis_o_bias_data;
+                     end if;
+ 
+                     if s_axis_g_bias_valid = '1' then
+                         g_bias <= s_axis_g_bias_data;
                      end if;
                 when ACCUMULATE =>
                     -- We are waiting for all the MACs to be finished so we cannot accept any more data
-                    S_AXIS_DATA_IN_tready <= '0';
-                    S_AXIS_HIDDEN_IN_tready <= '0';
-
-                    S_AXIS_WEIGHT_I_INPUT_tready <= '0';
-                    S_AXIS_WEIGHT_I_HIDDEN_tready <= '0';
-
-                    S_AXIS_WEIGHT_F_INPUT_tready <= '0';
-                    S_AXIS_WEIGHT_F_HIDDEN_tready <= '0';
-
-                    S_AXIS_WEIGHT_O_INPUT_tready <= '0';
-                    S_AXIS_WEIGHT_O_HIDDEN_tready <= '0';
-
-                    S_AXIS_WEIGHT_G_INPUT_tready <= '0';
-                    S_AXIS_WEIGHT_G_HIDDEN_tready <= '0';
+                    s_axis_pe_ready <= '0';
 
                     if not i_in_done and i_in_out_valid = '1' and i_in_out_last = '1' then
                         i_in_done := true;
@@ -1077,29 +973,29 @@ begin
                     end if;
 
                      -- C_T and bias are ready to be received
-                    S_AXIS_C_AND_BIAS_IN_tready <= '1';
+                     s_axis_c_in_and_bias_ready <= '1';
 
-                    if S_AXIS_C_T_in_tvalid = '1' then
-                        c_t <= S_AXIS_C_T_in_tdata;
-                    end if;
- 
-                     if S_AXIS_I_BIAS_tvalid = '1' then
-                         i_bias <= S_AXIS_I_BIAS_tdata;
+                     if s_axis_c_t_in_valid = '1' then
+                         c_t <= s_axis_c_t_in_data;
                      end if;
  
-                     if S_AXIS_F_BIAS_tvalid = '1' then
-                         f_bias <= S_AXIS_F_BIAS_tdata;
+                     if s_axis_i_bias_valid = '1' then
+                         i_bias <= s_axis_i_bias_data;
                      end if;
  
-                     if S_AXIS_O_BIAS_tvalid = '1' then
-                         o_bias <= S_AXIS_O_BIAS_tdata;
+                     if s_axis_f_bias_valid = '1' then
+                         f_bias <= s_axis_f_bias_data;
                      end if;
  
-                     if S_AXIS_G_BIAS_tvalid = '1' then
-                         g_bias <= S_AXIS_G_BIAS_tdata;
+                     if s_axis_o_bias_valid = '1' then
+                         o_bias <= s_axis_o_bias_data;
+                     end if;
+ 
+                     if s_axis_g_bias_valid = '1' then
+                         g_bias <= s_axis_g_bias_data;
                      end if;
                 when POST =>
-                    S_AXIS_C_AND_BIAS_IN_tready <= '0';
+                    s_axis_c_in_and_bias_ready <= '0';
 
                     case pe_post_state is
                         when S1 =>
@@ -2248,9 +2144,9 @@ begin
                             end if;
 
                             -- Wait for the multiplier to be done
-                            if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING) then
-                                M_AXIS_HIDDEN_OUT_tdata <= mult_1_RESULT_tdata;
-                                M_AXIS_HIDDEN_OUT_tvalid <= '1';
+                            if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING and m_axis_hidden_out_ready = '1') then
+                                m_axis_hidden_out_data <= mult_1_RESULT_tdata;
+                                m_axis_hidden_out_valid <= '1';
                                 
                                 post_buffer_1 <= (others => '0');
                                 post_buffer_4 <= (others => '0');
@@ -2492,15 +2388,15 @@ begin
             M_AXIS_ACC_RESULT_tready => f_hid_out_ready,
             M_AXIS_ACC_RESULT_tvalid => f_hid_out_valid,
 
-            S_AXIS_DATA_IN_tdata => S_AXIS_HIDDEN_IN_tdata,
-            S_AXIS_DATA_IN_tlast => S_AXIS_HIDDEN_IN_tlast,
+            S_AXIS_DATA_IN_tdata => s_axis_data_in,
+            S_AXIS_DATA_IN_tlast => s_axis_pe_last,
             S_AXIS_DATA_IN_tready => f_hid_mac_data_ready,
-            S_AXIS_DATA_IN_tvalid => S_AXIS_HIDDEN_IN_tvalid,
+            S_AXIS_DATA_IN_tvalid => s_axis_pe_valid,
 
-            S_AXIS_WEIGHT_IN_tdata => S_AXIS_WEIGHT_F_hidden_tdata,
-            S_AXIS_WEIGHT_IN_tlast => S_AXIS_WEIGHT_F_hidden_tlast,
+            S_AXIS_WEIGHT_IN_tdata => s_axis_weight_f_hidden_data,
+            S_AXIS_WEIGHT_IN_tlast => s_axis_pe_last,
             S_AXIS_WEIGHT_IN_tready => f_hid_mac_weight_ready,
-            S_AXIS_WEIGHT_IN_tvalid => S_AXIS_WEIGHT_F_hidden_tvalid,
+            S_AXIS_WEIGHT_IN_tvalid => s_axis_pe_valid,
 
             aclk => clk
         );
@@ -2513,15 +2409,15 @@ begin
             M_AXIS_ACC_RESULT_tready => o_in_out_ready,
             M_AXIS_ACC_RESULT_tvalid => o_in_out_valid,
 
-            S_AXIS_DATA_IN_tdata => S_AXIS_DATA_IN_tdata,
-            S_AXIS_DATA_IN_tlast => S_AXIS_DATA_IN_tlast,
+            S_AXIS_DATA_IN_tdata => s_axis_data_in,
+            S_AXIS_DATA_IN_tlast => s_axis_pe_last,
             S_AXIS_DATA_IN_tready => o_in_mac_data_ready,
-            S_AXIS_DATA_IN_tvalid => S_AXIS_DATA_IN_tvalid,
+            S_AXIS_DATA_IN_tvalid => s_axis_pe_valid,
 
-            S_AXIS_WEIGHT_IN_tdata => S_AXIS_WEIGHT_O_input_tdata,
-            S_AXIS_WEIGHT_IN_tlast => S_AXIS_WEIGHT_O_input_tlast,
+            S_AXIS_WEIGHT_IN_tdata => s_axis_weight_o_input_data,
+            S_AXIS_WEIGHT_IN_tlast => s_axis_pe_last,
             S_AXIS_WEIGHT_IN_tready => o_in_mac_weight_ready,
-            S_AXIS_WEIGHT_IN_tvalid => S_AXIS_WEIGHT_O_input_tvalid,
+            S_AXIS_WEIGHT_IN_tvalid => s_axis_pe_valid,
 
             aclk => clk
         );
@@ -2534,15 +2430,15 @@ begin
             M_AXIS_ACC_RESULT_tready => o_hid_out_ready,
             M_AXIS_ACC_RESULT_tvalid => o_hid_out_valid,
 
-            S_AXIS_DATA_IN_tdata => S_AXIS_HIDDEN_IN_tdata,
-            S_AXIS_DATA_IN_tlast => S_AXIS_HIDDEN_IN_tlast,
+            S_AXIS_DATA_IN_tdata => s_axis_hidden_data,
+            S_AXIS_DATA_IN_tlast => s_axis_pe_last,
             S_AXIS_DATA_IN_tready => o_hid_mac_data_ready,
-            S_AXIS_DATA_IN_tvalid => S_AXIS_HIDDEN_IN_tvalid,
+            S_AXIS_DATA_IN_tvalid => s_axis_pe_valid,
 
-            S_AXIS_WEIGHT_IN_tdata => S_AXIS_WEIGHT_O_hidden_tdata,
-            S_AXIS_WEIGHT_IN_tlast => S_AXIS_WEIGHT_O_hidden_tlast,
+            S_AXIS_WEIGHT_IN_tdata => s_axis_weight_o_hidden_data,
+            S_AXIS_WEIGHT_IN_tlast => s_axis_pe_last,
             S_AXIS_WEIGHT_IN_tready => o_hid_mac_weight_ready,
-            S_AXIS_WEIGHT_IN_tvalid => S_AXIS_WEIGHT_O_hidden_tvalid,
+            S_AXIS_WEIGHT_IN_tvalid => s_axis_pe_valid,
 
             aclk => clk
         );
@@ -2555,15 +2451,15 @@ begin
             M_AXIS_ACC_RESULT_tready => g_in_out_ready,
             M_AXIS_ACC_RESULT_tvalid => g_in_out_valid,
 
-            S_AXIS_DATA_IN_tdata => S_AXIS_DATA_IN_tdata,
-            S_AXIS_DATA_IN_tlast => S_AXIS_DATA_IN_tlast,
+            S_AXIS_DATA_IN_tdata => s_axis_data_in,
+            S_AXIS_DATA_IN_tlast => s_axis_pe_last,
             S_AXIS_DATA_IN_tready => g_in_mac_data_ready,
-            S_AXIS_DATA_IN_tvalid => S_AXIS_DATA_IN_tvalid,
+            S_AXIS_DATA_IN_tvalid => s_axis_pe_valid,
 
-            S_AXIS_WEIGHT_IN_tdata => S_AXIS_WEIGHT_G_input_tdata,
-            S_AXIS_WEIGHT_IN_tlast => S_AXIS_WEIGHT_G_input_tlast,
+            S_AXIS_WEIGHT_IN_tdata => s_axis_weight_g_input_data,
+            S_AXIS_WEIGHT_IN_tlast => s_axis_pe_last,
             S_AXIS_WEIGHT_IN_tready => g_in_mac_weight_ready,
-            S_AXIS_WEIGHT_IN_tvalid => S_AXIS_WEIGHT_G_input_tvalid,
+            S_AXIS_WEIGHT_IN_tvalid => s_axis_pe_valid,
 
             aclk => clk
         );
@@ -2576,15 +2472,15 @@ begin
             M_AXIS_ACC_RESULT_tready => g_hid_out_ready,
             M_AXIS_ACC_RESULT_tvalid => g_hid_out_valid,
 
-            S_AXIS_DATA_IN_tdata => S_AXIS_HIDDEN_IN_tdata,
-            S_AXIS_DATA_IN_tlast => S_AXIS_HIDDEN_IN_tlast,
+            S_AXIS_DATA_IN_tdata => s_axis_hidden_data,
+            S_AXIS_DATA_IN_tlast => s_axis_pe_last,
             S_AXIS_DATA_IN_tready => g_hid_mac_data_ready,
-            S_AXIS_DATA_IN_tvalid => S_AXIS_HIDDEN_IN_tvalid,
+            S_AXIS_DATA_IN_tvalid => s_axis_pe_valid,
 
-            S_AXIS_WEIGHT_IN_tdata => S_AXIS_WEIGHT_G_hidden_tdata,
-            S_AXIS_WEIGHT_IN_tlast => S_AXIS_WEIGHT_G_hidden_tlast,
+            S_AXIS_WEIGHT_IN_tdata => s_axis_weight_g_hidden_data,
+            S_AXIS_WEIGHT_IN_tlast => s_axis_pe_last,
             S_AXIS_WEIGHT_IN_tready => g_hid_mac_weight_ready,
-            S_AXIS_WEIGHT_IN_tvalid => S_AXIS_WEIGHT_G_hidden_tvalid,
+            S_AXIS_WEIGHT_IN_tvalid => s_axis_pe_valid,
 
             aclk => clk
         );
