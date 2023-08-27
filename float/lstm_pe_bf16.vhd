@@ -7,8 +7,10 @@ entity lstm_pe_bf16 is
         clk     : in std_logic;
 
         s_axis_pe_ready : out std_logic := '0';
-        s_axis_pe_valid : in std_logic := '0';
-        s_axis_pe_last : in std_logic := '0';
+        s_axis_pe_valid : in std_logic;
+        s_axis_pe_last : in std_logic;
+
+        post_allowed : in std_logic;
 
         -- input
         s_axis_data_in : in std_logic_vector(15 downto 0);
@@ -995,1052 +997,778 @@ begin
                          g_bias <= s_axis_g_bias_data;
                      end if;
                 when POST =>
-                    s_axis_c_in_and_bias_ready <= '0';
-
-                    case pe_post_state is
-                        when S1 =>
-                            -- Stage 1: The output of the i, g, and f macs are added together. So input + hidden
-                            
-                            -- I MAC
-                            -- Wait for the adder to be ready
-                            if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
-                                -- Set the inputs to the adder
-                                adder_1_A_tdata <= i_in_out_data_buffer;
-                                adder_1_A_tvalid <= '1';
-                                adder_1_B_tdata <= i_hid_out_data_buffer;
-                                adder_1_B_tvalid <= '1';
-
-                                adder_1_RESULT_tready <= '1';
-                                adder_1_state <= WAITING;
-                                adder_1_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_1_lat_block = BLOCKED) then
-                                adder_1_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_1_state = WAITING and adder_1_RESULT_tvalid = '1' and adder_1_lat_block = UNBLOCKED) then
-                                -- Reset the adder
-                                adder_1_A_tvalid <= '0';
-                                adder_1_B_tvalid <= '0';
-                                adder_1_RESULT_tready <= '0';
-                                post_buffer_1 <= adder_1_RESULT_tdata;
-                                adder_1_state <= DONE;
-                            end if;
-
-                            -- F MAC
-                            -- Wait for the adder to be ready
-                            if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
-                                -- Set the inputs to the adder
-                                adder_2_A_tdata <= f_in_out_data_buffer;
-                                adder_2_A_tvalid <= '1';
-                                adder_2_B_tdata <= f_hid_out_data_buffer;
-                                adder_2_B_tvalid <= '1';
-
-                                adder_2_RESULT_tready <= '1';
-                                adder_2_state <= WAITING;
-                                adder_2_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_2_lat_block = BLOCKED) then
-                                adder_2_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
-                                -- Reset the adder
-                                adder_2_A_tvalid <= '0';
-                                adder_2_B_tvalid <= '0';
-                                adder_2_RESULT_tready <= '0';
-                                post_buffer_2 <= adder_2_RESULT_tdata;
-                                adder_2_state <= DONE;
-                            end if;
-
-                            -- G MAC
-                            -- Wait for the adder to be ready
-                            if (adder_3_A_tready = '1' and adder_3_B_tready = '1' and adder_3_state = IDLE) then
-                                -- Set the inputs to the adder
-                                adder_3_A_tdata <= g_in_out_data_buffer;
-                                adder_3_A_tvalid <= '1';
-                                adder_3_B_tdata <= g_hid_out_data_buffer;
-                                adder_3_B_tvalid <= '1';
-
-                                adder_3_RESULT_tready <= '1';
-                                adder_3_state <= WAITING;
-
-                                adder_3_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_3_lat_block = BLOCKED) then
-                                adder_3_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_3_RESULT_tvalid = '1' and adder_3_state = WAITING and adder_3_lat_block = UNBLOCKED) then
-                                -- Reset the adder
-                                adder_3_A_tvalid <= '0';
-                                adder_3_B_tvalid <= '0';
-                                adder_3_RESULT_tready <= '0';
-                                post_buffer_3 <= adder_3_RESULT_tdata;
-                                adder_3_state <= DONE;
-                            end if;
-
-                            -- Wait for all the adders to be done
-                            if (adder_1_state = DONE and adder_2_state = DONE and adder_3_state = DONE) then
-                                -- Set the next state to post
-                                pe_post_state <= S2;
-
-                                -- Reset the states to idle
-                                adder_1_state <= IDLE;
-                                adder_2_state <= IDLE;
-                                adder_3_state <= IDLE;
-                            end if;
-                        when S2 =>
-                            -- Stage 2: The output of the i, g, and f of the previous stage are added with their corresponding biases
-
-                            -- Buffers
-                            -- 1: i_inp + i_hid
-                            -- 2: f_inp + f_hid
-                            -- 3: g_inp + g_hid
-                            -- 4: empty
-                            -- 5: empty
-                            -- 6: empty
-                            -- 7: empty
-                            -- 8: empty
-                            -- 9: empty
-
-                            -- I MAC
-                            -- Wait for the adder to be ready
-                            if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
-                                -- Set the inputs to the adder
-                                adder_1_A_tdata <= post_buffer_1;
-                                adder_1_A_tvalid <= '1';
-                                adder_1_B_tdata <= i_bias;
-                                adder_1_B_tvalid <= '1';
-
-                                adder_1_RESULT_tready <= '1';
-                                adder_1_state <= WAITING;
-
-                                adder_1_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_1_lat_block = BLOCKED) then
-                                adder_1_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
-                                -- Reset the adder
-                                adder_1_A_tvalid <= '0';
-                                adder_1_B_tvalid <= '0';
-                                adder_1_RESULT_tready <= '0';
-                                post_buffer_1 <= adder_1_RESULT_tdata;
-                                adder_1_state <= DONE;
-                            end if;
-
-                            -- G MAC
-                            -- Wait for the adder to be ready
-                            if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
-                                -- Set the inputs to the adder
-                                adder_2_A_tdata <= post_buffer_2;
-                                adder_2_A_tvalid <= '1';
-                                adder_2_B_tdata <= g_bias;
-                                adder_2_B_tvalid <= '1';
-
-                                adder_2_RESULT_tready <= '1';
-                                adder_2_state <= WAITING;
-
-                                adder_2_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_2_lat_block = BLOCKED) then
-                                adder_2_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
-                                -- Reset the adder
-                                adder_2_A_tvalid <= '0';
-                                adder_2_B_tvalid <= '0';
-                                adder_2_RESULT_tready <= '0';
-                                post_buffer_2 <= adder_2_RESULT_tdata;
-                                adder_2_state <= DONE;
-                            end if;
-
-                            -- F MAC
-                            -- Wait for the adder to be ready
-                            if (adder_3_A_tready = '1' and adder_3_B_tready = '1' and adder_3_state = IDLE) then
-                                -- Set the inputs to the adder
-                                adder_3_A_tdata <= post_buffer_3;
-                                adder_3_A_tvalid <= '1';
-                                adder_3_B_tdata <= f_bias;
-                                adder_3_B_tvalid <= '1';
-
-                                adder_3_RESULT_tready <= '1';
-                                adder_3_state <= WAITING;
-
-                                adder_3_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_3_lat_block = BLOCKED) then
-                                adder_3_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_3_RESULT_tvalid = '1' and adder_3_state = WAITING and adder_3_lat_block = UNBLOCKED) then
-                                -- Reset the adder
-                                adder_3_A_tvalid <= '0';
-                                adder_3_B_tvalid <= '0';
-                                adder_3_RESULT_tready <= '0';
-                                post_buffer_3 <= adder_3_RESULT_tdata;
-                                adder_3_state <= DONE;
-                            end if;
-
-                            -- Wait for all the adders to be done
-                            if (adder_1_state = DONE and adder_2_state = DONE and adder_3_state = DONE) then
-                                -- Set the next state to post
-                                pe_post_state <= S3;
-
-                                -- Reset the states to idle
-                                adder_1_state <= IDLE;
-                                adder_2_state <= IDLE;
-                                adder_3_state <= IDLE;
-
-                                sig_1_slope_tready <= '1';
-                                sig_1_offset_tready <= '1';
-                                sig_1_input_out_tready <= '1';
-                                sig_1_value_tready <= '1';
-
-                                sig_2_slope_tready <= '1';
-                                sig_2_offset_tready <= '1';
-                                sig_2_input_out_tready <= '1';
-                                sig_2_value_tready <= '1';
-
-                                tanh_slope_tready <= '1';
-                                tanh_offset_tready <= '1';
-                                tanh_input_out_tready <= '1';
-                                tanh_value_tready <= '1';
-                            end if;
-                        when S3 =>
-                            -- Stage 3: The outputs are now activated with i and f being sigmoid and g being tanh
-                            -- The first stage of the activation is arbiting the slope of the piecewise linear function approximation
-                            
-                            -- Buffers
-                            -- 1: i + i_bias
-                            -- 2: f + f_bias
-                            -- 3: g + g_bias
-                            -- 4: empty
-                            -- 5: empty
-                            -- 6: empty
-                            -- 7: empty
-                            -- 8: empty
-                            -- 9: empty
-
-                            -- I MAC
-                            -- Wait for arbiter to be ready
-                            if (sig_1_input_tready = '1' and sig_1_state = IDLE) then
-                                -- Set the inputs to the arbiter
-                                sig_1_input_tdata <= post_buffer_1;
-                                sig_1_input_tvalid <= '1';
-
-                                sig_1_slope_tready <= '1';
-                                sig_1_offset_tready <= '1';
-                                sig_1_input_out_tready <= '1';
-                                sig_1_value_tready <= '1';
-                                sig_1_state <= WAITING;
-                            end if;
-
-                            -- Wait for the arbiter to be done
-                            if (sig_1_state = WAITING) then
-                                if (sig_1_value_tvalid = '1') then
-                                    post_buffer_1 <= sig_1_value_tdata;
-                                    post_buffer_2 <= (others => '0');
-                                    post_buffer_3 <= (others => '0');
-                                    sig_1_method <= VALUE;
-
-                                    sig_1_slope_tready <= '0';
-                                    sig_1_offset_tready <= '0';
-                                    sig_1_input_out_tready <= '0';
-                                    sig_1_value_tready <= '0';
-                                    
-                                    sig_1_state <= DONE;
-                                elsif (sig_1_input_out_tvalid = '1' and sig_1_offset_tvalid = '1' and sig_1_slope_tvalid = '1') then
-                                    post_buffer_1 <= sig_1_slope_tdata;
-                                    post_buffer_2 <= sig_1_offset_tdata;
-                                    post_buffer_3 <= sig_1_input_out_tdata;
-
-                                    sig_1_method <= PWL;
-
-                                    sig_1_slope_tready <= '0';
-                                    sig_1_offset_tready <= '0';
-                                    sig_1_input_out_tready <= '0';
-                                    sig_1_value_tready <= '0';
-                                    
-                                    sig_1_state <= DONE;
-                                end if;
-
-                                -- Reset the arbiter
-                                sig_1_input_tvalid <= '0';
-                            end if;
-
-                            -- F MAC
-                            -- Wait for arbiter to be ready
-                            if (sig_2_input_tready = '1' and sig_2_state = IDLE) then
-                                -- Set the inputs to the arbiter
-                                sig_2_input_tdata <= post_buffer_2;
-                                sig_2_input_tvalid <= '1';
-
-                                sig_2_slope_tready <= '1';
-                                sig_2_offset_tready <= '1';
-                                sig_2_input_out_tready <= '1';
-                                sig_2_value_tready <= '1';
-                                sig_2_state <= WAITING;
-                            end if;
-
-                            -- Wait for the arbiter to be done
-                            if (sig_2_state = WAITING) then
-                                if (sig_2_value_tvalid = '1') then
-                                    post_buffer_4 <= sig_2_value_tdata;
-                                    post_buffer_5 <= (others => '0');
-                                    post_buffer_6 <= (others => '0');
-                                    sig_2_method <= VALUE;
-
-                                    sig_2_slope_tready <= '0';
-                                    sig_2_offset_tready <= '0';
-                                    sig_2_input_out_tready <= '0';
-                                    sig_2_value_tready <= '0';
-                                    sig_2_state <= DONE;
-                                elsif (sig_2_input_out_tvalid = '1' and sig_2_offset_tvalid = '1' and sig_2_slope_tvalid = '1') then
-                                    post_buffer_4 <= sig_2_slope_tdata;
-                                    post_buffer_5 <= sig_2_offset_tdata;
-                                    post_buffer_6 <= sig_2_input_out_tdata;
-
-                                    sig_2_method <= PWL;
-
-                                    sig_2_slope_tready <= '0';
-                                    sig_2_offset_tready <= '0';
-                                    sig_2_input_out_tready <= '0';
-                                    sig_2_value_tready <= '0';
-                                    sig_2_state <= DONE;
-                                end if;
-
-                                -- Reset the arbiter
-                                sig_2_input_tvalid <= '0';
-                            end if;
-
-                            -- G MAC
-                            -- Wait for arbiter to be ready
-                            if (tanh_input_tready = '1' and tanh_state = IDLE) then
-                                -- Set the inputs to the arbiter
-                                tanh_input_tdata <= post_buffer_3;
-                                tanh_input_tvalid <= '1';
-
-                                tanh_slope_tready <= '1';
-                                tanh_offset_tready <= '1';
-                                tanh_input_out_tready <= '1';
-                                tanh_value_tready <= '1';
-                                tanh_state <= WAITING;
-                            end if;
-
-                            -- Wait for the arbiter to be done
-                            if (tanh_state = WAITING) then
-                                if (tanh_value_tvalid = '1') then
-                                    post_buffer_7 <= tanh_value_tdata;
-                                    post_buffer_8 <= (others => '0');
-                                    post_buffer_9 <= (others => '0');
-                                    tanh_method <= VALUE;
-
-                                    tanh_slope_tready <= '0';
-                                    tanh_offset_tready <= '0';
-                                    tanh_input_out_tready <= '0';
-                                    tanh_value_tready <= '0';
-                                    
-                                    tanh_state <= DONE;
-                                elsif (tanh_input_out_tvalid = '1' and tanh_offset_tvalid = '1' and tanh_slope_tvalid = '1') then
-                                    post_buffer_7 <= tanh_slope_tdata;
-                                    post_buffer_8 <= tanh_offset_tdata;
-                                    post_buffer_9 <= tanh_input_out_tdata;
-
-                                    tanh_method <= PWL;
-
-                                    tanh_slope_tready <= '0';
-                                    tanh_offset_tready <= '0';
-                                    tanh_input_out_tready <= '0';
-                                    tanh_value_tready <= '0';
-                                    
-                                    tanh_state <= DONE;
-                                end if;
-
-                                -- Reset the arbiter
-                                tanh_input_tvalid <= '0';
-                            end if;
-
-                            -- Wait for all arbiters to be done
-                            if (sig_1_state = DONE and sig_2_state = DONE and tanh_state = DONE) then
-                                -- Reset the arbiter states
-                                sig_1_state <= IDLE;
-                                sig_2_state <= IDLE;
-                                tanh_state <= IDLE;
-
-                                pe_post_state <= S4;
-                            end if;
-
-                        when S4 =>
-                            -- Stage 4: Depending on the method, the outputs are fed to the multiplier (PWL) otherwise the value is passed through
-
-                            -- Buffers
-                            -- 1: i_sig Slope | Value
-                            -- 2: i_sig Offset | Empty
-                            -- 3: i_sig Input | Empty
-                            -- 4: f_sig Slope | Value
-                            -- 5: f_sig Offset | Empty
-                            -- 6: f_sig Input | Empty
-                            -- 7: g_tanh Slope | Value
-                            -- 8: g_tanh Offset | Empty
-                            -- 9: g_tanh Input | Empty
-
-                            -- i_sig
-                            -- Wait for the multiplier to be ready
-                            if (mult_1_A_tready = '1' and mult_1_B_tready = '1' and mult_1_state = IDLE) then
-                                if (sig_1_method = PWL) then
-                                    mult_1_A_pb <= PB1;
-                                    mult_1_B_pb <= PB3;
-
-                                    mult_1_RESULT_tready <= '1';
-
-                                    mult_1_state <= WAITING;
-                                else
-                                    mult_1_state <= DONE;
-                                end if;
-                            end if;
-
-                            -- Wait for the multiplier to be done
-                            if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING) then
-                                    post_buffer_1 <= mult_1_RESULT_tdata;
-                                    post_buffer_3 <= (others => '0');
-                                    
-                                    mult_1_state <= DONE;
-
-                                     -- Reset the multiplier
-                                     mult_1_A_pb <= NONE;
-                                     mult_1_B_pb <= NONE;
-                                    mult_1_RESULT_tready <= '0';
-                            end if;
-
-                            -- f_sig
-                            -- Wait for the multiplier to be ready
-                            if (mult_2_A_tready = '1' and mult_2_B_tready = '1' and mult_2_state = IDLE) then
-                                if (sig_2_method = PWL) then
-                                    mult_2_A_pb <= PB4;
-                                    mult_2_B_pb <= PB6;
-
-                                    mult_2_RESULT_tready <= '1';
-
-                                    mult_2_state <= WAITING;
-                                else
-                                    mult_2_state <= DONE;
-                                end if;
-                            end if;
-
-                            -- Wait for the multiplier to be done
-                            if (mult_2_RESULT_tvalid = '1' and mult_2_state = WAITING) then
-                                    post_buffer_4 <= mult_2_RESULT_tdata;
-                                    post_buffer_6 <= (others => '0');
-                                    mult_2_state <= DONE;
-
-                                     -- Reset the multiplier
-                                    mult_2_A_pb <= NONE;
-                                    mult_2_B_pb <= NONE;
-                                    mult_2_RESULT_tready <= '0';
-                            end if;
-
-                            -- g_tanh
-                            -- Wait for the multiplier to be ready
-                            if (mult_3_A_tready = '1' and mult_3_B_tready = '1' and mult_3_state = IDLE) then
-                                if (tanh_method = PWL) then
-                                    mult_3_A_pb <= PB7;
-                                    mult_3_B_pb <= PB9;
-
-                                    mult_3_RESULT_tready <= '1';
-
-                                    mult_3_state <= WAITING;
-                                else
-                                    mult_3_state <= DONE;
-                                end if;
-                            end if;
-
-                            -- Wait for the multiplier to be done
-                            if (mult_3_RESULT_tvalid = '1' and mult_3_state = WAITING) then
-                                    post_buffer_7 <= mult_3_RESULT_tdata;
-                                    post_buffer_9 <= (others => '0');
-                                    mult_3_state <= DONE;
-
-                                     -- Reset the multiplier
-                                    mult_3_A_pb <= NONE;
-                                    mult_3_B_pb <= NONE;
-                                    mult_3_RESULT_tready <= '0';
-                            end if;
-
-                            -- Wait for all the multipliers to be done
-                            if (mult_1_state = DONE and mult_2_state = DONE and mult_3_state = DONE) then
-                                -- Reset the multipliers
-                                mult_1_state <= IDLE;
-                                mult_2_state <= IDLE;
-                                mult_3_state <= IDLE;
-
-                                pe_post_state <= S5;
-                            end if;
-                        when S5 =>
-                            -- Stage 5: Add the offset to the multiplier results
-
-                            -- Buffers
-                            -- 1: i_sig Mult | Value
-                            -- 2: i_sig Offset | Empty
-                            -- 3: Empty
-                            -- 4: f_sig Mult | Value
-                            -- 5: f_sig Offset | Empty
-                            -- 6: Empty
-                            -- 7: g_tanh Mult | Value
-                            -- 8: g_tanh Offset | Empty
-                            -- 9: Empty
-
-                            -- i_sig
-                            -- Wait for the adder to be ready
-                            if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
-                                if (sig_1_method = PWL) then
-                                    adder_1_A_tdata <= post_buffer_1;
+                    if post_allowed = '0' then 
+                        s_axis_c_in_and_bias_ready <= '1';
+
+                        if s_axis_c_t_in_valid = '1' then
+                            c_t <= s_axis_c_t_in_data;
+                        end if;
+    
+                        if s_axis_i_bias_valid = '1' then
+                            i_bias <= s_axis_i_bias_data;
+                        end if;
+    
+                        if s_axis_f_bias_valid = '1' then
+                            f_bias <= s_axis_f_bias_data;
+                        end if;
+    
+                        if s_axis_o_bias_valid = '1' then
+                            o_bias <= s_axis_o_bias_data;
+                        end if;
+    
+                        if s_axis_g_bias_valid = '1' then
+                            g_bias <= s_axis_g_bias_data;
+                        end if;
+                    else
+                        s_axis_c_in_and_bias_ready <= '0';
+
+                        case pe_post_state is
+                            when S1 =>
+                                -- Stage 1: The output of the i, g, and f macs are added together. So input + hidden
+                                
+                                -- I MAC
+                                -- Wait for the adder to be ready
+                                if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
+                                    -- Set the inputs to the adder
+                                    adder_1_A_tdata <= i_in_out_data_buffer;
                                     adder_1_A_tvalid <= '1';
-
-                                    adder_1_B_tdata <= post_buffer_2;
+                                    adder_1_B_tdata <= i_hid_out_data_buffer;
                                     adder_1_B_tvalid <= '1';
 
                                     adder_1_RESULT_tready <= '1';
-
                                     adder_1_state <= WAITING;
-
                                     adder_1_lat_block <= BLOCKED;
-                                else
-                                    adder_1_state <= DONE;
                                 end if;
-                            end if;
 
-                            if (adder_1_lat_block = BLOCKED) then
-                                adder_1_lat_block <= UNBLOCKED;
-                            end if;
+                                if (adder_1_lat_block = BLOCKED) then
+                                    adder_1_lat_block <= UNBLOCKED;
+                                end if;
 
-                            -- Wait for the adder to be done
-                            if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
-                                    post_buffer_1 <= adder_1_RESULT_tdata;
-                                    post_buffer_2 <= (others => '0');
-                                    adder_1_state <= DONE;
-
-                                     -- Reset the adder
+                                -- Wait for the adder to be done
+                                if (adder_1_state = WAITING and adder_1_RESULT_tvalid = '1' and adder_1_lat_block = UNBLOCKED) then
+                                    -- Reset the adder
                                     adder_1_A_tvalid <= '0';
                                     adder_1_B_tvalid <= '0';
                                     adder_1_RESULT_tready <= '0';
-                            end if;
+                                    post_buffer_1 <= adder_1_RESULT_tdata;
+                                    adder_1_state <= DONE;
+                                end if;
 
-                            -- f_sig
-                            -- Wait for the adder to be ready
-                            if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
-                                if (sig_2_method = PWL) then
-                                    adder_2_A_tdata <= post_buffer_4;
+                                -- F MAC
+                                -- Wait for the adder to be ready
+                                if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
+                                    -- Set the inputs to the adder
+                                    adder_2_A_tdata <= f_in_out_data_buffer;
                                     adder_2_A_tvalid <= '1';
-
-                                    adder_2_B_tdata <= post_buffer_5;
+                                    adder_2_B_tdata <= f_hid_out_data_buffer;
                                     adder_2_B_tvalid <= '1';
 
                                     adder_2_RESULT_tready <= '1';
-
                                     adder_2_state <= WAITING;
-
                                     adder_2_lat_block <= BLOCKED;
-                                else
-                                    adder_2_state <= DONE;
                                 end if;
-                            end if;
 
-                            if (adder_2_lat_block = BLOCKED) then
-                                adder_2_lat_block <= UNBLOCKED;
-                            end if;
+                                if (adder_2_lat_block = BLOCKED) then
+                                    adder_2_lat_block <= UNBLOCKED;
+                                end if;
 
-                            -- Wait for the adder to be done
-                            if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
-                                    post_buffer_4 <= adder_2_RESULT_tdata;
-                                    post_buffer_5 <= (others => '0');
-                                    adder_2_state <= DONE;
-
-                                     -- Reset the adder
+                                -- Wait for the adder to be done
+                                if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
+                                    -- Reset the adder
                                     adder_2_A_tvalid <= '0';
                                     adder_2_B_tvalid <= '0';
                                     adder_2_RESULT_tready <= '0';
-                            end if;
+                                    post_buffer_2 <= adder_2_RESULT_tdata;
+                                    adder_2_state <= DONE;
+                                end if;
 
-                            -- g_tanh
-                            -- Wait for the adder to be ready
-                            if (adder_3_A_tready = '1' and adder_3_B_tready = '1' and adder_3_state = IDLE) then
-                                if (tanh_method = PWL) then
-                                    adder_3_A_tdata <= post_buffer_7;
+                                -- G MAC
+                                -- Wait for the adder to be ready
+                                if (adder_3_A_tready = '1' and adder_3_B_tready = '1' and adder_3_state = IDLE) then
+                                    -- Set the inputs to the adder
+                                    adder_3_A_tdata <= g_in_out_data_buffer;
                                     adder_3_A_tvalid <= '1';
-
-                                    adder_3_B_tdata <= post_buffer_8;
+                                    adder_3_B_tdata <= g_hid_out_data_buffer;
                                     adder_3_B_tvalid <= '1';
 
                                     adder_3_RESULT_tready <= '1';
-
                                     adder_3_state <= WAITING;
 
                                     adder_3_lat_block <= BLOCKED;
-                                else
-                                    adder_3_state <= DONE;
                                 end if;
-                            end if;
 
-                            if (adder_3_lat_block = BLOCKED) then
-                                adder_3_lat_block <= UNBLOCKED;
-                            end if;
+                                if (adder_3_lat_block = BLOCKED) then
+                                    adder_3_lat_block <= UNBLOCKED;
+                                end if;
 
-                            -- Wait for the adder to be done
-                            if (adder_3_RESULT_tvalid = '1' and adder_3_state = WAITING and adder_3_lat_block = UNBLOCKED) then
-                                    post_buffer_7 <= adder_3_RESULT_tdata;
-                                    post_buffer_8 <= (others => '0');
-                                    adder_3_state <= DONE;
-
-                                     -- Reset the adder
+                                -- Wait for the adder to be done
+                                if (adder_3_RESULT_tvalid = '1' and adder_3_state = WAITING and adder_3_lat_block = UNBLOCKED) then
+                                    -- Reset the adder
                                     adder_3_A_tvalid <= '0';
                                     adder_3_B_tvalid <= '0';
                                     adder_3_RESULT_tready <= '0';
-                            end if;
+                                    post_buffer_3 <= adder_3_RESULT_tdata;
+                                    adder_3_state <= DONE;
+                                end if;
 
-                            -- Wait for all the adders to be done
-                            if (adder_1_state = DONE and adder_2_state = DONE and adder_3_state = DONE) then
-                                -- Reset the adders
-                                adder_1_state <= IDLE;
-                                adder_2_state <= IDLE;
-                                adder_3_state <= IDLE;
+                                -- Wait for all the adders to be done
+                                if (adder_1_state = DONE and adder_2_state = DONE and adder_3_state = DONE) then
+                                    -- Set the next state to post
+                                    pe_post_state <= S2;
 
-                                pe_post_state <= S6;
-                            end if;
-                        when S6 =>
-                            -- Stage 6: Multiply the I and G results and multiply the F and C value
-                            -- Additionally the O_input and O_hidden are added to each other
+                                    -- Reset the states to idle
+                                    adder_1_state <= IDLE;
+                                    adder_2_state <= IDLE;
+                                    adder_3_state <= IDLE;
+                                end if;
+                            when S2 =>
+                                -- Stage 2: The output of the i, g, and f of the previous stage are added with their corresponding biases
 
-                            -- Buffers
-                            -- 1: i_sig Value
-                            -- 2: Empty
-                            -- 3: Empty
-                            -- 4: f_sig Value
-                            -- 5: Empty
-                            -- 6: Empty
-                            -- 7: g_tanh Value
-                            -- 8: Empty
-                            -- 9: Empty
+                                -- Buffers
+                                -- 1: i_inp + i_hid
+                                -- 2: f_inp + f_hid
+                                -- 3: g_inp + g_hid
+                                -- 4: empty
+                                -- 5: empty
+                                -- 6: empty
+                                -- 7: empty
+                                -- 8: empty
+                                -- 9: empty
 
-                            -- i_sig * g_tanh
-                            -- Wait for the multiplier to be ready
-                            if (mult_1_A_tready = '1' and mult_1_B_tready = '1' and mult_1_state = IDLE) then
-                                mult_1_A_pb <= PB1;
-                                mult_1_B_pb <= PB7;
+                                -- I MAC
+                                -- Wait for the adder to be ready
+                                if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
+                                    -- Set the inputs to the adder
+                                    adder_1_A_tdata <= post_buffer_1;
+                                    adder_1_A_tvalid <= '1';
+                                    adder_1_B_tdata <= i_bias;
+                                    adder_1_B_tvalid <= '1';
 
-                                mult_1_RESULT_tready <= '1';
+                                    adder_1_RESULT_tready <= '1';
+                                    adder_1_state <= WAITING;
 
-                                mult_1_state <= WAITING;
-                            end if;
+                                    adder_1_lat_block <= BLOCKED;
+                                end if;
 
-                            -- Wait for the multiplier to be done
-                            if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING) then
-                                    post_buffer_1 <= mult_1_RESULT_tdata;
-                                    post_buffer_7 <= (others => '0');
-                                    mult_1_state <= DONE;
+                                if (adder_1_lat_block = BLOCKED) then
+                                    adder_1_lat_block <= UNBLOCKED;
+                                end if;
 
-                                     -- Reset the multiplier
-                                    mult_1_A_pb <= NONE;
-                                    mult_1_B_pb <= NONE;
-                                    mult_1_RESULT_tready <= '0';
-                            end if;
-
-                            -- f_sig * c
-                            -- Wait for the multiplier to be ready
-                            if (mult_2_A_tready = '1' and mult_2_B_tready = '1' and mult_2_state = IDLE) then
-                                mult_2_A_pb <= PB4;
-                                mult_2_B_pb <= CT;
-
-                                mult_2_RESULT_tready <= '1';
-                                
-                                mult_2_state <= WAITING;
-                            end if;
-
-                            -- Wait for the multiplier to be done
-                            if (mult_2_RESULT_tvalid = '1' and mult_2_state = WAITING) then
-                                    post_buffer_2 <= mult_2_RESULT_tdata;
-                                    post_buffer_4 <= (others => '0');
-                                    mult_2_state <= DONE;
-
-                                     -- Reset the multiplier
-                                    mult_2_A_pb <= NONE;
-                                    mult_2_B_pb <= NONE;
-                                    mult_2_RESULT_tready <= '0';
-                            end if;
-
-                            -- o_input + o_hidden
-                            -- Wait for the adder to be ready
-                            if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
-                                adder_1_A_tdata <= o_in_out_data_buffer;
-                                adder_1_A_tvalid <= '1';
-
-                                adder_1_B_tdata <= o_hid_out_data_buffer;
-                                adder_1_B_tvalid <= '1';
-
-                                adder_1_RESULT_tready <= '1';
-
-                                adder_1_state <= WAITING;
-
-                                adder_1_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_1_lat_block = BLOCKED) then
-                                adder_1_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
-                                    post_buffer_4 <= adder_1_RESULT_tdata;
-                                    o_in_out_data_buffer <= (others => '0');
-                                    o_hid_out_data_buffer <= (others => '0');
-                                    adder_1_state <= DONE;
-
-                                     -- Reset the adder
+                                -- Wait for the adder to be done
+                                if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
+                                    -- Reset the adder
                                     adder_1_A_tvalid <= '0';
                                     adder_1_B_tvalid <= '0';
                                     adder_1_RESULT_tready <= '0';
-                            end if;
-
-                            -- Wait for all the multipliers and adders to be done
-                            if (mult_1_state = DONE and mult_2_state = DONE and adder_1_state = DONE) then
-                                -- Reset the multipliers and adders
-                                mult_1_state <= IDLE;
-                                mult_2_state <= IDLE;
-                                adder_1_state <= IDLE;
-
-                                pe_post_state <= S7;
-                            end if;
-
-                        when S7 =>
-                            -- Stage 7: Add the results of the multiplications together
-                            -- Additionally the O and O_bias are added to each other
-
-                            -- Buffers
-                            -- 1: i_sig * g_tanh
-                            -- 2: f_sig * c
-                            -- 3: Empty
-                            -- 4: o_input + o_hidden
-                            -- 5: Empty
-                            -- 6: Empty
-                            -- 7: Empty
-                            -- 8: Empty
-                            -- 9: Empty
-
-                            -- (i_sig * g_tanh) + (f_sig * c)
-                            -- Wait for the adder to be ready
-                            if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
-                                adder_1_A_tdata <= post_buffer_1;
-                                adder_1_A_tvalid <= '1';
-
-                                adder_1_B_tdata <= post_buffer_2;
-                                adder_1_B_tvalid <= '1';
-
-                                adder_1_RESULT_tready <= '1';
-
-                                adder_1_state <= WAITING;
-
-                                adder_1_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_1_lat_block = BLOCKED) then
-                                adder_1_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
                                     post_buffer_1 <= adder_1_RESULT_tdata;
-                                    c_t <= adder_1_RESULT_tdata;
-                                    post_buffer_2 <= (others => '0');
                                     adder_1_state <= DONE;
+                                end if;
 
-                                     -- Reset the adder
-                                    adder_1_A_tvalid <= '0';
-                                    adder_1_B_tvalid <= '0';
-                                    adder_1_RESULT_tready <= '0';
-                            end if;
+                                -- G MAC
+                                -- Wait for the adder to be ready
+                                if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
+                                    -- Set the inputs to the adder
+                                    adder_2_A_tdata <= post_buffer_2;
+                                    adder_2_A_tvalid <= '1';
+                                    adder_2_B_tdata <= g_bias;
+                                    adder_2_B_tvalid <= '1';
 
-                            -- O + O_bias
-                            -- Wait for the adder to be ready
-                            if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
-                                adder_2_A_tdata <= post_buffer_4;
-                                adder_2_A_tvalid <= '1';
+                                    adder_2_RESULT_tready <= '1';
+                                    adder_2_state <= WAITING;
 
-                                adder_2_B_tdata <= o_bias;
-                                adder_2_B_tvalid <= '1';
+                                    adder_2_lat_block <= BLOCKED;
+                                end if;
 
-                                adder_2_RESULT_tready <= '1';
+                                if (adder_2_lat_block = BLOCKED) then
+                                    adder_2_lat_block <= UNBLOCKED;
+                                end if;
 
-                                adder_2_state <= WAITING;
-
-                                adder_2_lat_block <= BLOCKED;
-                            end if;
-
-                            if (adder_2_lat_block = BLOCKED) then
-                                adder_2_lat_block <= UNBLOCKED;
-                            end if;
-
-                            -- Wait for the adder to be done
-                            if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
-                                    post_buffer_4 <= adder_2_RESULT_tdata;
-                                    adder_2_state <= DONE;
-
-                                     -- Reset the adder
+                                -- Wait for the adder to be done
+                                if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
+                                    -- Reset the adder
                                     adder_2_A_tvalid <= '0';
                                     adder_2_B_tvalid <= '0';
                                     adder_2_RESULT_tready <= '0';
-                            end if;
+                                    post_buffer_2 <= adder_2_RESULT_tdata;
+                                    adder_2_state <= DONE;
+                                end if;
 
-                            -- Wait for all the adders to be done
-                            if (adder_1_state = DONE and adder_2_state = DONE) then
-                                -- Reset the adders
-                                adder_1_state <= IDLE;
-                                adder_2_state <= IDLE;
+                                -- F MAC
+                                -- Wait for the adder to be ready
+                                if (adder_3_A_tready = '1' and adder_3_B_tready = '1' and adder_3_state = IDLE) then
+                                    -- Set the inputs to the adder
+                                    adder_3_A_tdata <= post_buffer_3;
+                                    adder_3_A_tvalid <= '1';
+                                    adder_3_B_tdata <= f_bias;
+                                    adder_3_B_tvalid <= '1';
 
-                                pe_post_state <= S8;
+                                    adder_3_RESULT_tready <= '1';
+                                    adder_3_state <= WAITING;
 
-                                -- Prepare ready signals for arbiters in stage 8
-                                tanh_slope_tready <= '1';
-                                tanh_offset_tready <= '1';
-                                tanh_input_out_tready <= '1';
-                                tanh_value_tready <= '1';
+                                    adder_3_lat_block <= BLOCKED;
+                                end if;
 
-                                sig_1_slope_tready <= '1';
-                                sig_1_offset_tready <= '1';
-                                sig_1_input_out_tready <= '1';
-                                sig_1_value_tready <= '1';
-                            end if;
-                        when S8 =>
-                            -- Stage 8: the tanh function is applied on the combination of i, g, f and c; the o is put through a sigmoid function
+                                if (adder_3_lat_block = BLOCKED) then
+                                    adder_3_lat_block <= UNBLOCKED;
+                                end if;
 
-                            -- Buffers
-                            -- 1: i_sig * g_tanh + f_sig * c
-                            -- 2: Empty
-                            -- 3: Empty
-                            -- 4: o + o_bias
-                            -- 5: Empty
-                            -- 6: Empty
-                            -- 7: Empty
-                            -- 8: Empty
-                            -- 9: Empty
+                                -- Wait for the adder to be done
+                                if (adder_3_RESULT_tvalid = '1' and adder_3_state = WAITING and adder_3_lat_block = UNBLOCKED) then
+                                    -- Reset the adder
+                                    adder_3_A_tvalid <= '0';
+                                    adder_3_B_tvalid <= '0';
+                                    adder_3_RESULT_tready <= '0';
+                                    post_buffer_3 <= adder_3_RESULT_tdata;
+                                    adder_3_state <= DONE;
+                                end if;
 
-                            -- tanh arbiter
-                            -- Wait for the arbiter to be ready
-                            if (tanh_input_tready = '1' and tanh_state = IDLE) then
-                                -- Set the inputs to the arbiter
-                                tanh_input_tdata <= post_buffer_1;
-                                tanh_input_tvalid <= '1';
+                                -- Wait for all the adders to be done
+                                if (adder_1_state = DONE and adder_2_state = DONE and adder_3_state = DONE) then
+                                    -- Set the next state to post
+                                    pe_post_state <= S3;
 
-                                tanh_slope_tready <= '1';
-                                tanh_offset_tready <= '1';
-                                tanh_input_out_tready <= '1';
-                                tanh_value_tready <= '1';
+                                    -- Reset the states to idle
+                                    adder_1_state <= IDLE;
+                                    adder_2_state <= IDLE;
+                                    adder_3_state <= IDLE;
+
+                                    sig_1_slope_tready <= '1';
+                                    sig_1_offset_tready <= '1';
+                                    sig_1_input_out_tready <= '1';
+                                    sig_1_value_tready <= '1';
+
+                                    sig_2_slope_tready <= '1';
+                                    sig_2_offset_tready <= '1';
+                                    sig_2_input_out_tready <= '1';
+                                    sig_2_value_tready <= '1';
+
+                                    tanh_slope_tready <= '1';
+                                    tanh_offset_tready <= '1';
+                                    tanh_input_out_tready <= '1';
+                                    tanh_value_tready <= '1';
+                                end if;
+                            when S3 =>
+                                -- Stage 3: The outputs are now activated with i and f being sigmoid and g being tanh
+                                -- The first stage of the activation is arbiting the slope of the piecewise linear function approximation
                                 
-                                tanh_state <= WAITING;
-                            end if;
+                                -- Buffers
+                                -- 1: i + i_bias
+                                -- 2: f + f_bias
+                                -- 3: g + g_bias
+                                -- 4: empty
+                                -- 5: empty
+                                -- 6: empty
+                                -- 7: empty
+                                -- 8: empty
+                                -- 9: empty
 
-                            -- Wait for the arbiter to be done
-                            if (tanh_state = WAITING) then
-                                if (tanh_value_tvalid = '1') then
-                                    post_buffer_1 <= tanh_value_tdata;
-                                    post_buffer_2 <= (others => '0');
-                                    post_buffer_3 <= (others => '0');
+                                -- I MAC
+                                -- Wait for arbiter to be ready
+                                if (sig_1_input_tready = '1' and sig_1_state = IDLE) then
+                                    -- Set the inputs to the arbiter
+                                    sig_1_input_tdata <= post_buffer_1;
+                                    sig_1_input_tvalid <= '1';
 
-                                    tanh_method <= VALUE;
-
-                                    tanh_slope_tready <= '0';
-                                    tanh_offset_tready <= '0';
-                                    tanh_input_out_tready <= '0';
-                                    tanh_value_tready <= '0';
-                                    
-                                    tanh_state <= DONE;
-                                elsif (tanh_input_out_tvalid = '1' and tanh_offset_tvalid = '1' and tanh_slope_tvalid = '1') then
-                                    post_buffer_1 <= tanh_slope_tdata;
-                                    post_buffer_2 <= tanh_offset_tdata;
-                                    post_buffer_3 <= tanh_input_out_tdata;
-
-                                    tanh_method <= PWL;
-
-                                    tanh_slope_tready <= '0';
-                                    tanh_offset_tready <= '0';
-                                    tanh_input_out_tready <= '0';
-                                    tanh_value_tready <= '0';
-                                    
-                                    tanh_state <= DONE;
+                                    sig_1_slope_tready <= '1';
+                                    sig_1_offset_tready <= '1';
+                                    sig_1_input_out_tready <= '1';
+                                    sig_1_value_tready <= '1';
+                                    sig_1_state <= WAITING;
                                 end if;
 
-                                -- Reset the arbiter
-                                tanh_input_tvalid <= '0';
-                            end if;
+                                -- Wait for the arbiter to be done
+                                if (sig_1_state = WAITING) then
+                                    if (sig_1_value_tvalid = '1') then
+                                        post_buffer_1 <= sig_1_value_tdata;
+                                        post_buffer_2 <= (others => '0');
+                                        post_buffer_3 <= (others => '0');
+                                        sig_1_method <= VALUE;
 
-                            -- Sig arbiter
-                            -- Wait for the arbiter to be ready
-                            if (sig_1_input_tready = '1' and sig_1_state = IDLE) then
-                                -- Set the inputs to the arbiter
-                                sig_1_input_tdata <= post_buffer_4;
-                                sig_1_input_tvalid <= '1';
+                                        sig_1_slope_tready <= '0';
+                                        sig_1_offset_tready <= '0';
+                                        sig_1_input_out_tready <= '0';
+                                        sig_1_value_tready <= '0';
+                                        
+                                        sig_1_state <= DONE;
+                                    elsif (sig_1_input_out_tvalid = '1' and sig_1_offset_tvalid = '1' and sig_1_slope_tvalid = '1') then
+                                        post_buffer_1 <= sig_1_slope_tdata;
+                                        post_buffer_2 <= sig_1_offset_tdata;
+                                        post_buffer_3 <= sig_1_input_out_tdata;
 
-                                sig_1_slope_tready <= '1';
-                                sig_1_offset_tready <= '1';
-                                sig_1_input_out_tready <= '1';
-                                sig_1_value_tready <= '1';
-                                sig_1_state <= WAITING;
-                            end if;
+                                        sig_1_method <= PWL;
 
-                            -- Wait for the arbiter to be done
-                            if (sig_1_state = WAITING) then
-                                if (sig_1_value_tvalid = '1') then
-                                    post_buffer_4 <= sig_1_value_tdata;
-                                    post_buffer_5 <= (others => '0');
-                                    post_buffer_6 <= (others => '0');
+                                        sig_1_slope_tready <= '0';
+                                        sig_1_offset_tready <= '0';
+                                        sig_1_input_out_tready <= '0';
+                                        sig_1_value_tready <= '0';
+                                        
+                                        sig_1_state <= DONE;
+                                    end if;
 
-                                    sig_1_method <= VALUE;
-
-                                    sig_1_slope_tready <= '0';
-                                    sig_1_offset_tready <= '0';
-                                    sig_1_input_out_tready <= '0';
-                                    sig_1_value_tready <= '0';
-                                    
-                                    sig_1_state <= DONE;
-                                elsif (sig_1_input_out_tvalid = '1' and sig_1_offset_tvalid = '1' and sig_1_slope_tvalid = '1') then
-                                    post_buffer_4 <= sig_1_slope_tdata;
-                                    post_buffer_5 <= sig_1_offset_tdata;
-                                    post_buffer_6 <= sig_1_input_out_tdata;
-
-                                    sig_1_method <= PWL;
-
-                                    sig_1_slope_tready <= '0';
-                                    sig_1_offset_tready <= '0';
-                                    sig_1_input_out_tready <= '0';
-                                    sig_1_value_tready <= '0';
-                                    
-                                    sig_1_state <= DONE;
+                                    -- Reset the arbiter
+                                    sig_1_input_tvalid <= '0';
                                 end if;
 
-                                -- Reset the arbiter
-                                sig_1_input_tvalid <= '0';
-                            end if;
+                                -- F MAC
+                                -- Wait for arbiter to be ready
+                                if (sig_2_input_tready = '1' and sig_2_state = IDLE) then
+                                    -- Set the inputs to the arbiter
+                                    sig_2_input_tdata <= post_buffer_2;
+                                    sig_2_input_tvalid <= '1';
 
-                            -- Wait for all the arbiters to be done
-                            if (tanh_state = DONE and sig_1_state = DONE) then
-                                -- Reset the arbiters
-                                tanh_state <= IDLE;
-                                sig_1_state <= IDLE;
+                                    sig_2_slope_tready <= '1';
+                                    sig_2_offset_tready <= '1';
+                                    sig_2_input_out_tready <= '1';
+                                    sig_2_value_tready <= '1';
+                                    sig_2_state <= WAITING;
+                                end if;
 
-                                pe_post_state <= S9;
-                            end if;
-                        when S9 =>
-                            -- Stage 9: the tanh and sigmoid functions are fed through the multiplier if PWL otherwise passed through
+                                -- Wait for the arbiter to be done
+                                if (sig_2_state = WAITING) then
+                                    if (sig_2_value_tvalid = '1') then
+                                        post_buffer_4 <= sig_2_value_tdata;
+                                        post_buffer_5 <= (others => '0');
+                                        post_buffer_6 <= (others => '0');
+                                        sig_2_method <= VALUE;
 
-                            -- Buffers
-                            -- 1: tanh Slope | Value
-                            -- 2: tanh Offset | Empty
-                            -- 3: tanh Input | Empty
-                            -- 4: sig_1 Slope | Value
-                            -- 5: sig_1 Offset | Empty
-                            -- 6: sig_1 Input | Empty
-                            -- 7: Empty
-                            -- 8: Empty
-                            -- 9: Empty
+                                        sig_2_slope_tready <= '0';
+                                        sig_2_offset_tready <= '0';
+                                        sig_2_input_out_tready <= '0';
+                                        sig_2_value_tready <= '0';
+                                        sig_2_state <= DONE;
+                                    elsif (sig_2_input_out_tvalid = '1' and sig_2_offset_tvalid = '1' and sig_2_slope_tvalid = '1') then
+                                        post_buffer_4 <= sig_2_slope_tdata;
+                                        post_buffer_5 <= sig_2_offset_tdata;
+                                        post_buffer_6 <= sig_2_input_out_tdata;
 
-                            -- tanh multiplier
-                            -- Wait for the multiplier to be ready
-                            if (mult_1_A_tready = '1' and mult_1_B_tready = '1' and mult_1_state = IDLE) then
-                                if (tanh_method = PWL) then
-                                    -- Set the inputs to the multiplier
+                                        sig_2_method <= PWL;
+
+                                        sig_2_slope_tready <= '0';
+                                        sig_2_offset_tready <= '0';
+                                        sig_2_input_out_tready <= '0';
+                                        sig_2_value_tready <= '0';
+                                        sig_2_state <= DONE;
+                                    end if;
+
+                                    -- Reset the arbiter
+                                    sig_2_input_tvalid <= '0';
+                                end if;
+
+                                -- G MAC
+                                -- Wait for arbiter to be ready
+                                if (tanh_input_tready = '1' and tanh_state = IDLE) then
+                                    -- Set the inputs to the arbiter
+                                    tanh_input_tdata <= post_buffer_3;
+                                    tanh_input_tvalid <= '1';
+
+                                    tanh_slope_tready <= '1';
+                                    tanh_offset_tready <= '1';
+                                    tanh_input_out_tready <= '1';
+                                    tanh_value_tready <= '1';
+                                    tanh_state <= WAITING;
+                                end if;
+
+                                -- Wait for the arbiter to be done
+                                if (tanh_state = WAITING) then
+                                    if (tanh_value_tvalid = '1') then
+                                        post_buffer_7 <= tanh_value_tdata;
+                                        post_buffer_8 <= (others => '0');
+                                        post_buffer_9 <= (others => '0');
+                                        tanh_method <= VALUE;
+
+                                        tanh_slope_tready <= '0';
+                                        tanh_offset_tready <= '0';
+                                        tanh_input_out_tready <= '0';
+                                        tanh_value_tready <= '0';
+                                        
+                                        tanh_state <= DONE;
+                                    elsif (tanh_input_out_tvalid = '1' and tanh_offset_tvalid = '1' and tanh_slope_tvalid = '1') then
+                                        post_buffer_7 <= tanh_slope_tdata;
+                                        post_buffer_8 <= tanh_offset_tdata;
+                                        post_buffer_9 <= tanh_input_out_tdata;
+
+                                        tanh_method <= PWL;
+
+                                        tanh_slope_tready <= '0';
+                                        tanh_offset_tready <= '0';
+                                        tanh_input_out_tready <= '0';
+                                        tanh_value_tready <= '0';
+                                        
+                                        tanh_state <= DONE;
+                                    end if;
+
+                                    -- Reset the arbiter
+                                    tanh_input_tvalid <= '0';
+                                end if;
+
+                                -- Wait for all arbiters to be done
+                                if (sig_1_state = DONE and sig_2_state = DONE and tanh_state = DONE) then
+                                    -- Reset the arbiter states
+                                    sig_1_state <= IDLE;
+                                    sig_2_state <= IDLE;
+                                    tanh_state <= IDLE;
+
+                                    pe_post_state <= S4;
+                                end if;
+
+                            when S4 =>
+                                -- Stage 4: Depending on the method, the outputs are fed to the multiplier (PWL) otherwise the value is passed through
+
+                                -- Buffers
+                                -- 1: i_sig Slope | Value
+                                -- 2: i_sig Offset | Empty
+                                -- 3: i_sig Input | Empty
+                                -- 4: f_sig Slope | Value
+                                -- 5: f_sig Offset | Empty
+                                -- 6: f_sig Input | Empty
+                                -- 7: g_tanh Slope | Value
+                                -- 8: g_tanh Offset | Empty
+                                -- 9: g_tanh Input | Empty
+
+                                -- i_sig
+                                -- Wait for the multiplier to be ready
+                                if (mult_1_A_tready = '1' and mult_1_B_tready = '1' and mult_1_state = IDLE) then
+                                    if (sig_1_method = PWL) then
+                                        mult_1_A_pb <= PB1;
+                                        mult_1_B_pb <= PB3;
+
+                                        mult_1_RESULT_tready <= '1';
+
+                                        mult_1_state <= WAITING;
+                                    else
+                                        mult_1_state <= DONE;
+                                    end if;
+                                end if;
+
+                                -- Wait for the multiplier to be done
+                                if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING) then
+                                        post_buffer_1 <= mult_1_RESULT_tdata;
+                                        post_buffer_3 <= (others => '0');
+                                        
+                                        mult_1_state <= DONE;
+
+                                        -- Reset the multiplier
+                                        mult_1_A_pb <= NONE;
+                                        mult_1_B_pb <= NONE;
+                                        mult_1_RESULT_tready <= '0';
+                                end if;
+
+                                -- f_sig
+                                -- Wait for the multiplier to be ready
+                                if (mult_2_A_tready = '1' and mult_2_B_tready = '1' and mult_2_state = IDLE) then
+                                    if (sig_2_method = PWL) then
+                                        mult_2_A_pb <= PB4;
+                                        mult_2_B_pb <= PB6;
+
+                                        mult_2_RESULT_tready <= '1';
+
+                                        mult_2_state <= WAITING;
+                                    else
+                                        mult_2_state <= DONE;
+                                    end if;
+                                end if;
+
+                                -- Wait for the multiplier to be done
+                                if (mult_2_RESULT_tvalid = '1' and mult_2_state = WAITING) then
+                                        post_buffer_4 <= mult_2_RESULT_tdata;
+                                        post_buffer_6 <= (others => '0');
+                                        mult_2_state <= DONE;
+
+                                        -- Reset the multiplier
+                                        mult_2_A_pb <= NONE;
+                                        mult_2_B_pb <= NONE;
+                                        mult_2_RESULT_tready <= '0';
+                                end if;
+
+                                -- g_tanh
+                                -- Wait for the multiplier to be ready
+                                if (mult_3_A_tready = '1' and mult_3_B_tready = '1' and mult_3_state = IDLE) then
+                                    if (tanh_method = PWL) then
+                                        mult_3_A_pb <= PB7;
+                                        mult_3_B_pb <= PB9;
+
+                                        mult_3_RESULT_tready <= '1';
+
+                                        mult_3_state <= WAITING;
+                                    else
+                                        mult_3_state <= DONE;
+                                    end if;
+                                end if;
+
+                                -- Wait for the multiplier to be done
+                                if (mult_3_RESULT_tvalid = '1' and mult_3_state = WAITING) then
+                                        post_buffer_7 <= mult_3_RESULT_tdata;
+                                        post_buffer_9 <= (others => '0');
+                                        mult_3_state <= DONE;
+
+                                        -- Reset the multiplier
+                                        mult_3_A_pb <= NONE;
+                                        mult_3_B_pb <= NONE;
+                                        mult_3_RESULT_tready <= '0';
+                                end if;
+
+                                -- Wait for all the multipliers to be done
+                                if (mult_1_state = DONE and mult_2_state = DONE and mult_3_state = DONE) then
+                                    -- Reset the multipliers
+                                    mult_1_state <= IDLE;
+                                    mult_2_state <= IDLE;
+                                    mult_3_state <= IDLE;
+
+                                    pe_post_state <= S5;
+                                end if;
+                            when S5 =>
+                                -- Stage 5: Add the offset to the multiplier results
+
+                                -- Buffers
+                                -- 1: i_sig Mult | Value
+                                -- 2: i_sig Offset | Empty
+                                -- 3: Empty
+                                -- 4: f_sig Mult | Value
+                                -- 5: f_sig Offset | Empty
+                                -- 6: Empty
+                                -- 7: g_tanh Mult | Value
+                                -- 8: g_tanh Offset | Empty
+                                -- 9: Empty
+
+                                -- i_sig
+                                -- Wait for the adder to be ready
+                                if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
+                                    if (sig_1_method = PWL) then
+                                        adder_1_A_tdata <= post_buffer_1;
+                                        adder_1_A_tvalid <= '1';
+
+                                        adder_1_B_tdata <= post_buffer_2;
+                                        adder_1_B_tvalid <= '1';
+
+                                        adder_1_RESULT_tready <= '1';
+
+                                        adder_1_state <= WAITING;
+
+                                        adder_1_lat_block <= BLOCKED;
+                                    else
+                                        adder_1_state <= DONE;
+                                    end if;
+                                end if;
+
+                                if (adder_1_lat_block = BLOCKED) then
+                                    adder_1_lat_block <= UNBLOCKED;
+                                end if;
+
+                                -- Wait for the adder to be done
+                                if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
+                                        post_buffer_1 <= adder_1_RESULT_tdata;
+                                        post_buffer_2 <= (others => '0');
+                                        adder_1_state <= DONE;
+
+                                        -- Reset the adder
+                                        adder_1_A_tvalid <= '0';
+                                        adder_1_B_tvalid <= '0';
+                                        adder_1_RESULT_tready <= '0';
+                                end if;
+
+                                -- f_sig
+                                -- Wait for the adder to be ready
+                                if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
+                                    if (sig_2_method = PWL) then
+                                        adder_2_A_tdata <= post_buffer_4;
+                                        adder_2_A_tvalid <= '1';
+
+                                        adder_2_B_tdata <= post_buffer_5;
+                                        adder_2_B_tvalid <= '1';
+
+                                        adder_2_RESULT_tready <= '1';
+
+                                        adder_2_state <= WAITING;
+
+                                        adder_2_lat_block <= BLOCKED;
+                                    else
+                                        adder_2_state <= DONE;
+                                    end if;
+                                end if;
+
+                                if (adder_2_lat_block = BLOCKED) then
+                                    adder_2_lat_block <= UNBLOCKED;
+                                end if;
+
+                                -- Wait for the adder to be done
+                                if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
+                                        post_buffer_4 <= adder_2_RESULT_tdata;
+                                        post_buffer_5 <= (others => '0');
+                                        adder_2_state <= DONE;
+
+                                        -- Reset the adder
+                                        adder_2_A_tvalid <= '0';
+                                        adder_2_B_tvalid <= '0';
+                                        adder_2_RESULT_tready <= '0';
+                                end if;
+
+                                -- g_tanh
+                                -- Wait for the adder to be ready
+                                if (adder_3_A_tready = '1' and adder_3_B_tready = '1' and adder_3_state = IDLE) then
+                                    if (tanh_method = PWL) then
+                                        adder_3_A_tdata <= post_buffer_7;
+                                        adder_3_A_tvalid <= '1';
+
+                                        adder_3_B_tdata <= post_buffer_8;
+                                        adder_3_B_tvalid <= '1';
+
+                                        adder_3_RESULT_tready <= '1';
+
+                                        adder_3_state <= WAITING;
+
+                                        adder_3_lat_block <= BLOCKED;
+                                    else
+                                        adder_3_state <= DONE;
+                                    end if;
+                                end if;
+
+                                if (adder_3_lat_block = BLOCKED) then
+                                    adder_3_lat_block <= UNBLOCKED;
+                                end if;
+
+                                -- Wait for the adder to be done
+                                if (adder_3_RESULT_tvalid = '1' and adder_3_state = WAITING and adder_3_lat_block = UNBLOCKED) then
+                                        post_buffer_7 <= adder_3_RESULT_tdata;
+                                        post_buffer_8 <= (others => '0');
+                                        adder_3_state <= DONE;
+
+                                        -- Reset the adder
+                                        adder_3_A_tvalid <= '0';
+                                        adder_3_B_tvalid <= '0';
+                                        adder_3_RESULT_tready <= '0';
+                                end if;
+
+                                -- Wait for all the adders to be done
+                                if (adder_1_state = DONE and adder_2_state = DONE and adder_3_state = DONE) then
+                                    -- Reset the adders
+                                    adder_1_state <= IDLE;
+                                    adder_2_state <= IDLE;
+                                    adder_3_state <= IDLE;
+
+                                    pe_post_state <= S6;
+                                end if;
+                            when S6 =>
+                                -- Stage 6: Multiply the I and G results and multiply the F and C value
+                                -- Additionally the O_input and O_hidden are added to each other
+
+                                -- Buffers
+                                -- 1: i_sig Value
+                                -- 2: Empty
+                                -- 3: Empty
+                                -- 4: f_sig Value
+                                -- 5: Empty
+                                -- 6: Empty
+                                -- 7: g_tanh Value
+                                -- 8: Empty
+                                -- 9: Empty
+
+                                -- i_sig * g_tanh
+                                -- Wait for the multiplier to be ready
+                                if (mult_1_A_tready = '1' and mult_1_B_tready = '1' and mult_1_state = IDLE) then
                                     mult_1_A_pb <= PB1;
-                                    mult_1_B_pb <= PB3;
+                                    mult_1_B_pb <= PB7;
 
                                     mult_1_RESULT_tready <= '1';
+
                                     mult_1_state <= WAITING;
-                                else
-                                    mult_1_state <= DONE;
                                 end if;
-                            end if;
 
-                            -- Wait for the multiplier to be done
-                            if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING) then
-                                post_buffer_1 <= mult_1_RESULT_tdata;
-                                post_buffer_3 <= (others => '0');
+                                -- Wait for the multiplier to be done
+                                if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING) then
+                                        post_buffer_1 <= mult_1_RESULT_tdata;
+                                        post_buffer_7 <= (others => '0');
+                                        mult_1_state <= DONE;
 
-                                -- Reset the multiplier
-                                mult_1_A_pb <= NONE;
-                                mult_1_B_pb <= NONE;
-                                mult_1_RESULT_tready <= '0';
-                                
-                                mult_1_state <= DONE;
-                            end if;
+                                        -- Reset the multiplier
+                                        mult_1_A_pb <= NONE;
+                                        mult_1_B_pb <= NONE;
+                                        mult_1_RESULT_tready <= '0';
+                                end if;
 
-                            -- sig_1 multiplier
-                            -- Wait for the multiplier to be ready
-                            if (mult_2_A_tready = '1' and mult_2_B_tready = '1' and mult_2_state = IDLE) then
-                                if (sig_1_method = PWL) then
-                                    -- Set the inputs to the multiplier
+                                -- f_sig * c
+                                -- Wait for the multiplier to be ready
+                                if (mult_2_A_tready = '1' and mult_2_B_tready = '1' and mult_2_state = IDLE) then
                                     mult_2_A_pb <= PB4;
-                                    mult_2_B_pb <= PB6;
+                                    mult_2_B_pb <= CT;
 
                                     mult_2_RESULT_tready <= '1';
+                                    
                                     mult_2_state <= WAITING;
-                                else
-                                    mult_2_state <= DONE;
                                 end if;
-                            end if;
 
-                            -- Wait for the multiplier to be done
-                            if (mult_2_RESULT_tvalid = '1' and mult_2_state = WAITING) then
-                                post_buffer_4 <= mult_2_RESULT_tdata;
-                                post_buffer_6 <= (others => '0');
+                                -- Wait for the multiplier to be done
+                                if (mult_2_RESULT_tvalid = '1' and mult_2_state = WAITING) then
+                                        post_buffer_2 <= mult_2_RESULT_tdata;
+                                        post_buffer_4 <= (others => '0');
+                                        mult_2_state <= DONE;
 
-                                -- Reset the multiplier
-                                mult_2_A_pb <= NONE;
-                                mult_2_B_pb <= NONE;
-                                mult_2_RESULT_tready <= '0';
-                                
-                                mult_2_state <= DONE;
-                            end if;
+                                        -- Reset the multiplier
+                                        mult_2_A_pb <= NONE;
+                                        mult_2_B_pb <= NONE;
+                                        mult_2_RESULT_tready <= '0';
+                                end if;
 
-                            -- Wait for all the multipliers to be done
-                            if (mult_1_state = DONE and mult_2_state = DONE) then
-                                -- Reset the multipliers
-                                mult_1_state <= IDLE;
-                                mult_2_state <= IDLE;
+                                -- o_input + o_hidden
+                                -- Wait for the adder to be ready
+                                if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
+                                    adder_1_A_tdata <= o_in_out_data_buffer;
+                                    adder_1_A_tvalid <= '1';
 
-                                pe_post_state <= S10;
-                            end if;
+                                    adder_1_B_tdata <= o_hid_out_data_buffer;
+                                    adder_1_B_tvalid <= '1';
 
-                        when S10 =>
-                            -- Stage 10: the mult and offset of the tanh and sigmoid functions are added together
+                                    adder_1_RESULT_tready <= '1';
 
-                            -- Buffers
-                            -- 1: tanh Mult | Value
-                            -- 2: tanh Offset | Empty
-                            -- 3: Empty
-                            -- 4: sig_1 Mult | Value
-                            -- 5: sig_1 Offset | Empty
-                            -- 6: Empty
-                            -- 7: Empty
-                            -- 8: Empty
-                            -- 9: Empty
+                                    adder_1_state <= WAITING;
 
-                            -- tanh adder
-                            -- Wait for the adder to be ready
-                            if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
-                                if (tanh_method = PWL) then
-                                    -- Set the inputs to the adder
+                                    adder_1_lat_block <= BLOCKED;
+                                end if;
+
+                                if (adder_1_lat_block = BLOCKED) then
+                                    adder_1_lat_block <= UNBLOCKED;
+                                end if;
+
+                                -- Wait for the adder to be done
+                                if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
+                                        post_buffer_4 <= adder_1_RESULT_tdata;
+                                        o_in_out_data_buffer <= (others => '0');
+                                        o_hid_out_data_buffer <= (others => '0');
+                                        adder_1_state <= DONE;
+
+                                        -- Reset the adder
+                                        adder_1_A_tvalid <= '0';
+                                        adder_1_B_tvalid <= '0';
+                                        adder_1_RESULT_tready <= '0';
+                                end if;
+
+                                -- Wait for all the multipliers and adders to be done
+                                if (mult_1_state = DONE and mult_2_state = DONE and adder_1_state = DONE) then
+                                    -- Reset the multipliers and adders
+                                    mult_1_state <= IDLE;
+                                    mult_2_state <= IDLE;
+                                    adder_1_state <= IDLE;
+
+                                    pe_post_state <= S7;
+                                end if;
+
+                            when S7 =>
+                                -- Stage 7: Add the results of the multiplications together
+                                -- Additionally the O and O_bias are added to each other
+
+                                -- Buffers
+                                -- 1: i_sig * g_tanh
+                                -- 2: f_sig * c
+                                -- 3: Empty
+                                -- 4: o_input + o_hidden
+                                -- 5: Empty
+                                -- 6: Empty
+                                -- 7: Empty
+                                -- 8: Empty
+                                -- 9: Empty
+
+                                -- (i_sig * g_tanh) + (f_sig * c)
+                                -- Wait for the adder to be ready
+                                if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
                                     adder_1_A_tdata <= post_buffer_1;
                                     adder_1_A_tvalid <= '1';
 
@@ -2048,126 +1776,424 @@ begin
                                     adder_1_B_tvalid <= '1';
 
                                     adder_1_RESULT_tready <= '1';
+
                                     adder_1_state <= WAITING;
 
                                     adder_1_lat_block <= BLOCKED;
-                                else
-                                    adder_1_state <= DONE;
                                 end if;
-                            end if;
 
-                            if (adder_1_lat_block = BLOCKED) then
-                                adder_1_lat_block <= UNBLOCKED;
-                            end if;
+                                if (adder_1_lat_block = BLOCKED) then
+                                    adder_1_lat_block <= UNBLOCKED;
+                                end if;
 
-                            -- Wait for the adder to be done
-                            if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
-                                post_buffer_1 <= adder_1_RESULT_tdata;
-                                post_buffer_2 <= (others => '0');
+                                -- Wait for the adder to be done
+                                if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
+                                        post_buffer_1 <= adder_1_RESULT_tdata;
+                                        c_t <= adder_1_RESULT_tdata;
+                                        post_buffer_2 <= (others => '0');
+                                        adder_1_state <= DONE;
 
-                                -- Reset the adder
-                                adder_1_A_tvalid <= '0';
-                                adder_1_B_tvalid <= '0';
-                                adder_1_RESULT_tready <= '0';
-                                
-                                adder_1_state <= DONE;
-                            end if;
+                                        -- Reset the adder
+                                        adder_1_A_tvalid <= '0';
+                                        adder_1_B_tvalid <= '0';
+                                        adder_1_RESULT_tready <= '0';
+                                end if;
 
-                            -- sig_1 adder
-                            -- Wait for the adder to be ready
-                            if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
-                                if (sig_1_method = PWL) then
-                                    -- Set the inputs to the adder
+                                -- O + O_bias
+                                -- Wait for the adder to be ready
+                                if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
                                     adder_2_A_tdata <= post_buffer_4;
                                     adder_2_A_tvalid <= '1';
 
-                                    adder_2_B_tdata <= post_buffer_5;
+                                    adder_2_B_tdata <= o_bias;
                                     adder_2_B_tvalid <= '1';
 
                                     adder_2_RESULT_tready <= '1';
+
                                     adder_2_state <= WAITING;
 
                                     adder_2_lat_block <= BLOCKED;
-                                else
+                                end if;
+
+                                if (adder_2_lat_block = BLOCKED) then
+                                    adder_2_lat_block <= UNBLOCKED;
+                                end if;
+
+                                -- Wait for the adder to be done
+                                if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
+                                        post_buffer_4 <= adder_2_RESULT_tdata;
+                                        adder_2_state <= DONE;
+
+                                        -- Reset the adder
+                                        adder_2_A_tvalid <= '0';
+                                        adder_2_B_tvalid <= '0';
+                                        adder_2_RESULT_tready <= '0';
+                                end if;
+
+                                -- Wait for all the adders to be done
+                                if (adder_1_state = DONE and adder_2_state = DONE) then
+                                    -- Reset the adders
+                                    adder_1_state <= IDLE;
+                                    adder_2_state <= IDLE;
+
+                                    pe_post_state <= S8;
+
+                                    -- Prepare ready signals for arbiters in stage 8
+                                    tanh_slope_tready <= '1';
+                                    tanh_offset_tready <= '1';
+                                    tanh_input_out_tready <= '1';
+                                    tanh_value_tready <= '1';
+
+                                    sig_1_slope_tready <= '1';
+                                    sig_1_offset_tready <= '1';
+                                    sig_1_input_out_tready <= '1';
+                                    sig_1_value_tready <= '1';
+                                end if;
+                            when S8 =>
+                                -- Stage 8: the tanh function is applied on the combination of i, g, f and c; the o is put through a sigmoid function
+
+                                -- Buffers
+                                -- 1: i_sig * g_tanh + f_sig * c
+                                -- 2: Empty
+                                -- 3: Empty
+                                -- 4: o + o_bias
+                                -- 5: Empty
+                                -- 6: Empty
+                                -- 7: Empty
+                                -- 8: Empty
+                                -- 9: Empty
+
+                                -- tanh arbiter
+                                -- Wait for the arbiter to be ready
+                                if (tanh_input_tready = '1' and tanh_state = IDLE) then
+                                    -- Set the inputs to the arbiter
+                                    tanh_input_tdata <= post_buffer_1;
+                                    tanh_input_tvalid <= '1';
+
+                                    tanh_slope_tready <= '1';
+                                    tanh_offset_tready <= '1';
+                                    tanh_input_out_tready <= '1';
+                                    tanh_value_tready <= '1';
+                                    
+                                    tanh_state <= WAITING;
+                                end if;
+
+                                -- Wait for the arbiter to be done
+                                if (tanh_state = WAITING) then
+                                    if (tanh_value_tvalid = '1') then
+                                        post_buffer_1 <= tanh_value_tdata;
+                                        post_buffer_2 <= (others => '0');
+                                        post_buffer_3 <= (others => '0');
+
+                                        tanh_method <= VALUE;
+
+                                        tanh_slope_tready <= '0';
+                                        tanh_offset_tready <= '0';
+                                        tanh_input_out_tready <= '0';
+                                        tanh_value_tready <= '0';
+                                        
+                                        tanh_state <= DONE;
+                                    elsif (tanh_input_out_tvalid = '1' and tanh_offset_tvalid = '1' and tanh_slope_tvalid = '1') then
+                                        post_buffer_1 <= tanh_slope_tdata;
+                                        post_buffer_2 <= tanh_offset_tdata;
+                                        post_buffer_3 <= tanh_input_out_tdata;
+
+                                        tanh_method <= PWL;
+
+                                        tanh_slope_tready <= '0';
+                                        tanh_offset_tready <= '0';
+                                        tanh_input_out_tready <= '0';
+                                        tanh_value_tready <= '0';
+                                        
+                                        tanh_state <= DONE;
+                                    end if;
+
+                                    -- Reset the arbiter
+                                    tanh_input_tvalid <= '0';
+                                end if;
+
+                                -- Sig arbiter
+                                -- Wait for the arbiter to be ready
+                                if (sig_1_input_tready = '1' and sig_1_state = IDLE) then
+                                    -- Set the inputs to the arbiter
+                                    sig_1_input_tdata <= post_buffer_4;
+                                    sig_1_input_tvalid <= '1';
+
+                                    sig_1_slope_tready <= '1';
+                                    sig_1_offset_tready <= '1';
+                                    sig_1_input_out_tready <= '1';
+                                    sig_1_value_tready <= '1';
+                                    sig_1_state <= WAITING;
+                                end if;
+
+                                -- Wait for the arbiter to be done
+                                if (sig_1_state = WAITING) then
+                                    if (sig_1_value_tvalid = '1') then
+                                        post_buffer_4 <= sig_1_value_tdata;
+                                        post_buffer_5 <= (others => '0');
+                                        post_buffer_6 <= (others => '0');
+
+                                        sig_1_method <= VALUE;
+
+                                        sig_1_slope_tready <= '0';
+                                        sig_1_offset_tready <= '0';
+                                        sig_1_input_out_tready <= '0';
+                                        sig_1_value_tready <= '0';
+                                        
+                                        sig_1_state <= DONE;
+                                    elsif (sig_1_input_out_tvalid = '1' and sig_1_offset_tvalid = '1' and sig_1_slope_tvalid = '1') then
+                                        post_buffer_4 <= sig_1_slope_tdata;
+                                        post_buffer_5 <= sig_1_offset_tdata;
+                                        post_buffer_6 <= sig_1_input_out_tdata;
+
+                                        sig_1_method <= PWL;
+
+                                        sig_1_slope_tready <= '0';
+                                        sig_1_offset_tready <= '0';
+                                        sig_1_input_out_tready <= '0';
+                                        sig_1_value_tready <= '0';
+                                        
+                                        sig_1_state <= DONE;
+                                    end if;
+
+                                    -- Reset the arbiter
+                                    sig_1_input_tvalid <= '0';
+                                end if;
+
+                                -- Wait for all the arbiters to be done
+                                if (tanh_state = DONE and sig_1_state = DONE) then
+                                    -- Reset the arbiters
+                                    tanh_state <= IDLE;
+                                    sig_1_state <= IDLE;
+
+                                    pe_post_state <= S9;
+                                end if;
+                            when S9 =>
+                                -- Stage 9: the tanh and sigmoid functions are fed through the multiplier if PWL otherwise passed through
+
+                                -- Buffers
+                                -- 1: tanh Slope | Value
+                                -- 2: tanh Offset | Empty
+                                -- 3: tanh Input | Empty
+                                -- 4: sig_1 Slope | Value
+                                -- 5: sig_1 Offset | Empty
+                                -- 6: sig_1 Input | Empty
+                                -- 7: Empty
+                                -- 8: Empty
+                                -- 9: Empty
+
+                                -- tanh multiplier
+                                -- Wait for the multiplier to be ready
+                                if (mult_1_A_tready = '1' and mult_1_B_tready = '1' and mult_1_state = IDLE) then
+                                    if (tanh_method = PWL) then
+                                        -- Set the inputs to the multiplier
+                                        mult_1_A_pb <= PB1;
+                                        mult_1_B_pb <= PB3;
+
+                                        mult_1_RESULT_tready <= '1';
+                                        mult_1_state <= WAITING;
+                                    else
+                                        mult_1_state <= DONE;
+                                    end if;
+                                end if;
+
+                                -- Wait for the multiplier to be done
+                                if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING) then
+                                    post_buffer_1 <= mult_1_RESULT_tdata;
+                                    post_buffer_3 <= (others => '0');
+
+                                    -- Reset the multiplier
+                                    mult_1_A_pb <= NONE;
+                                    mult_1_B_pb <= NONE;
+                                    mult_1_RESULT_tready <= '0';
+                                    
+                                    mult_1_state <= DONE;
+                                end if;
+
+                                -- sig_1 multiplier
+                                -- Wait for the multiplier to be ready
+                                if (mult_2_A_tready = '1' and mult_2_B_tready = '1' and mult_2_state = IDLE) then
+                                    if (sig_1_method = PWL) then
+                                        -- Set the inputs to the multiplier
+                                        mult_2_A_pb <= PB4;
+                                        mult_2_B_pb <= PB6;
+
+                                        mult_2_RESULT_tready <= '1';
+                                        mult_2_state <= WAITING;
+                                    else
+                                        mult_2_state <= DONE;
+                                    end if;
+                                end if;
+
+                                -- Wait for the multiplier to be done
+                                if (mult_2_RESULT_tvalid = '1' and mult_2_state = WAITING) then
+                                    post_buffer_4 <= mult_2_RESULT_tdata;
+                                    post_buffer_6 <= (others => '0');
+
+                                    -- Reset the multiplier
+                                    mult_2_A_pb <= NONE;
+                                    mult_2_B_pb <= NONE;
+                                    mult_2_RESULT_tready <= '0';
+                                    
+                                    mult_2_state <= DONE;
+                                end if;
+
+                                -- Wait for all the multipliers to be done
+                                if (mult_1_state = DONE and mult_2_state = DONE) then
+                                    -- Reset the multipliers
+                                    mult_1_state <= IDLE;
+                                    mult_2_state <= IDLE;
+
+                                    pe_post_state <= S10;
+                                end if;
+
+                            when S10 =>
+                                -- Stage 10: the mult and offset of the tanh and sigmoid functions are added together
+
+                                -- Buffers
+                                -- 1: tanh Mult | Value
+                                -- 2: tanh Offset | Empty
+                                -- 3: Empty
+                                -- 4: sig_1 Mult | Value
+                                -- 5: sig_1 Offset | Empty
+                                -- 6: Empty
+                                -- 7: Empty
+                                -- 8: Empty
+                                -- 9: Empty
+
+                                -- tanh adder
+                                -- Wait for the adder to be ready
+                                if (adder_1_A_tready = '1' and adder_1_B_tready = '1' and adder_1_state = IDLE) then
+                                    if (tanh_method = PWL) then
+                                        -- Set the inputs to the adder
+                                        adder_1_A_tdata <= post_buffer_1;
+                                        adder_1_A_tvalid <= '1';
+
+                                        adder_1_B_tdata <= post_buffer_2;
+                                        adder_1_B_tvalid <= '1';
+
+                                        adder_1_RESULT_tready <= '1';
+                                        adder_1_state <= WAITING;
+
+                                        adder_1_lat_block <= BLOCKED;
+                                    else
+                                        adder_1_state <= DONE;
+                                    end if;
+                                end if;
+
+                                if (adder_1_lat_block = BLOCKED) then
+                                    adder_1_lat_block <= UNBLOCKED;
+                                end if;
+
+                                -- Wait for the adder to be done
+                                if (adder_1_RESULT_tvalid = '1' and adder_1_state = WAITING and adder_1_lat_block = UNBLOCKED) then
+                                    post_buffer_1 <= adder_1_RESULT_tdata;
+                                    post_buffer_2 <= (others => '0');
+
+                                    -- Reset the adder
+                                    adder_1_A_tvalid <= '0';
+                                    adder_1_B_tvalid <= '0';
+                                    adder_1_RESULT_tready <= '0';
+                                    
+                                    adder_1_state <= DONE;
+                                end if;
+
+                                -- sig_1 adder
+                                -- Wait for the adder to be ready
+                                if (adder_2_A_tready = '1' and adder_2_B_tready = '1' and adder_2_state = IDLE) then
+                                    if (sig_1_method = PWL) then
+                                        -- Set the inputs to the adder
+                                        adder_2_A_tdata <= post_buffer_4;
+                                        adder_2_A_tvalid <= '1';
+
+                                        adder_2_B_tdata <= post_buffer_5;
+                                        adder_2_B_tvalid <= '1';
+
+                                        adder_2_RESULT_tready <= '1';
+                                        adder_2_state <= WAITING;
+
+                                        adder_2_lat_block <= BLOCKED;
+                                    else
+                                        adder_2_state <= DONE;
+                                    end if;
+                                end if;
+
+                                if (adder_2_lat_block = BLOCKED) then
+                                    adder_2_lat_block <= UNBLOCKED;
+                                end if;
+
+                                -- Wait for the adder to be done
+                                if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
+                                    post_buffer_4 <= adder_2_RESULT_tdata;
+                                    post_buffer_5 <= (others => '0');
+
+                                    -- Reset the adder
+                                    adder_2_A_tvalid <= '0';
+                                    adder_2_B_tvalid <= '0';
+                                    adder_2_RESULT_tready <= '0';
+                                    
                                     adder_2_state <= DONE;
                                 end if;
-                            end if;
 
-                            if (adder_2_lat_block = BLOCKED) then
-                                adder_2_lat_block <= UNBLOCKED;
-                            end if;
+                                -- Wait for all the adders to be done
+                                if (adder_1_state = DONE and adder_2_state = DONE) then
+                                    -- Reset the adders
+                                    adder_1_state <= IDLE;
+                                    adder_2_state <= IDLE;
 
-                            -- Wait for the adder to be done
-                            if (adder_2_RESULT_tvalid = '1' and adder_2_state = WAITING and adder_2_lat_block = UNBLOCKED) then
-                                post_buffer_4 <= adder_2_RESULT_tdata;
-                                post_buffer_5 <= (others => '0');
+                                    pe_post_state <= S11;
+                                end if;
 
-                                -- Reset the adder
-                                adder_2_A_tvalid <= '0';
-                                adder_2_B_tvalid <= '0';
-                                adder_2_RESULT_tready <= '0';
-                                
-                                adder_2_state <= DONE;
-                            end if;
+                            when S11 =>
+                                -- Stage 11: Final stage; multiply the tanh and sigmoid values together to get the final hidden output
 
-                            -- Wait for all the adders to be done
-                            if (adder_1_state = DONE and adder_2_state = DONE) then
-                                -- Reset the adders
-                                adder_1_state <= IDLE;
-                                adder_2_state <= IDLE;
+                                -- Buffers
+                                -- 1: tanh Value
+                                -- 2: Empty
+                                -- 3: Empty
+                                -- 4: sig_1 Value
+                                -- 5: Empty
+                                -- 6: Empty
+                                -- 7: Empty
+                                -- 8: Empty
+                                -- 9: Empty
 
-                                pe_post_state <= S11;
-                            end if;
+                                -- Wait for the multiplier to be ready
+                                if (mult_1_A_tready = '1' and mult_1_B_tready = '1' and mult_1_state = IDLE) then
+                                    -- Set the inputs to the multiplier
+                                    mult_1_A_pb <= PB1;
+                                    mult_1_B_pb <= PB4;
 
-                        when S11 =>
-                            -- Stage 11: Final stage; multiply the tanh and sigmoid values together to get the final hidden output
+                                    mult_1_RESULT_tready <= '1';
+                                    mult_1_state <= WAITING;
+                                end if;
 
-                            -- Buffers
-                            -- 1: tanh Value
-                            -- 2: Empty
-                            -- 3: Empty
-                            -- 4: sig_1 Value
-                            -- 5: Empty
-                            -- 6: Empty
-                            -- 7: Empty
-                            -- 8: Empty
-                            -- 9: Empty
+                                -- Wait for the multiplier to be done
+                                if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING and m_axis_hidden_out_ready = '1') then
+                                    m_axis_hidden_out_data <= mult_1_RESULT_tdata;
+                                    m_axis_hidden_out_valid <= '1';
+                                    
+                                    post_buffer_1 <= (others => '0');
+                                    post_buffer_4 <= (others => '0');
 
-                            -- Wait for the multiplier to be ready
-                            if (mult_1_A_tready = '1' and mult_1_B_tready = '1' and mult_1_state = IDLE) then
-                                -- Set the inputs to the multiplier
-                                mult_1_A_pb <= PB1;
-                                mult_1_B_pb <= PB4;
+                                    -- Reset the multiplier
+                                    mult_1_A_pb <= NONE;
+                                    mult_1_B_pb <= NONE;
+                                    mult_1_RESULT_tready <= '0';
+                                    
+                                    mult_1_state <= DONE;
+                                end if;
 
-                                mult_1_RESULT_tready <= '1';
-                                mult_1_state <= WAITING;
-                            end if;
+                                -- Wait for all the multipliers to be done
+                                if (mult_1_state = DONE) then
+                                    -- Reset the multipliers
+                                    mult_1_state <= IDLE;
 
-                            -- Wait for the multiplier to be done
-                            if (mult_1_RESULT_tvalid = '1' and mult_1_state = WAITING and m_axis_hidden_out_ready = '1') then
-                                m_axis_hidden_out_data <= mult_1_RESULT_tdata;
-                                m_axis_hidden_out_valid <= '1';
-                                
-                                post_buffer_1 <= (others => '0');
-                                post_buffer_4 <= (others => '0');
-
-                                -- Reset the multiplier
-                                mult_1_A_pb <= NONE;
-                                mult_1_B_pb <= NONE;
-                                mult_1_RESULT_tready <= '0';
-                                
-                                mult_1_state <= DONE;
-                            end if;
-
-                            -- Wait for all the multipliers to be done
-                            if (mult_1_state = DONE) then
-                                -- Reset the multipliers
-                                mult_1_state <= IDLE;
-
-                                pe_post_state <= S1;
-                                pe_state_next := RECEIVE;
-                            end if;
-                    end case;
+                                    pe_post_state <= S1;
+                                    pe_state_next := RECEIVE;
+                                end if;
+                        end case;
+                    end if;
             end case;
 
 

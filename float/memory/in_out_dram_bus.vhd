@@ -12,7 +12,6 @@ entity in_out_dram_bus is
         data_bus : inout std_logic_vector(511 downto 0) := (others => 'Z');
         data_bus_valid : inout std_logic := 'Z';
         data_bus_state : in std_logic_vector(4 downto 0);
-        data_bus_state_valid : in std_logic;
         data_bus_dest : inout std_logic_vector(18 downto 0) := (others => 'Z');
         data_bus_last : inout std_logic_vector(1 downto 0) := (others => 'Z');
 
@@ -136,51 +135,49 @@ begin
             end if;
 
             -- DRAM bus handling
-            if data_bus_state_valid = '1' then
-                case current_db_state is
-                    when WRITE_PREV_H =>
-                        if buffer_state(ph_read_pointer) = prev_h and db_hid_out_data_ready = '1' then
-                            data_bus_valid <= '1';
-                            data_bus <= data_buffer(ph_read_pointer);
-                            data_bus_dest <= std_logic_vector(to_unsigned(ph_read_pointer, 19));
+            case current_db_state is
+                when WRITE_PREV_H =>
+                    if buffer_state(ph_read_pointer) = prev_h and db_hid_out_data_ready = '1' then
+                        data_bus_valid <= '1';
+                        data_bus <= data_buffer(ph_read_pointer);
+                        data_bus_dest <= std_logic_vector(to_unsigned(ph_read_pointer, 19));
 
-                            if ph_read_pointer = 11 then
-                                data_bus_last <= "01";
-                                -- reset read pointer
-                                ph_read_pointer <= 0;
-                            else
-                                data_bus_last <= "00";
-                                -- increment read pointer
-                                ph_read_pointer <= ph_read_pointer + 1;
-                            end if;
-
-                            
-                            buffer_state(ph_read_pointer) <= invalid;
-                        else 
-                            data_bus_valid <= 'Z';
-                            data_bus <= (others => 'Z');
-                            data_bus_dest <= (others => 'Z');
-                            data_bus_last <= (others => 'Z');
+                        if ph_read_pointer = 11 then
+                            data_bus_last <= "01";
+                            -- reset read pointer
+                            ph_read_pointer <= 0;
+                        else
+                            data_bus_last <= "00";
+                            -- increment read pointer
+                            ph_read_pointer <= ph_read_pointer + 1;
                         end if;
-                    when READ_NEXT_H =>
-                        db_hid_in_data_ready <= '1';
 
-                        if data_bus_valid = '1' then
-                            buffer_state(to_integer(unsigned(data_bus_dest))) <= next_h;
-                            data_buffer(to_integer(unsigned(data_bus_dest))) <= data_bus;
-                        else 
-                            data_bus_last <= (others => 'Z');
-                            data_bus_valid <= 'Z';
-                            data_bus <= (others => 'Z');
-                            data_bus_dest <= (others => 'Z');
-                        end if;
-                    when others =>
+                        
+                        buffer_state(ph_read_pointer) <= invalid;
+                    else 
+                        data_bus_valid <= 'Z';
+                        data_bus <= (others => 'Z');
+                        data_bus_dest <= (others => 'Z');
+                        data_bus_last <= (others => 'Z');
+                    end if;
+                when READ_NEXT_H =>
+                    db_hid_in_data_ready <= '1';
+
+                    if data_bus_valid = '1' then
+                        buffer_state(to_integer(unsigned(data_bus_dest))) <= next_h;
+                        data_buffer(to_integer(unsigned(data_bus_dest))) <= data_bus;
+                    else 
                         data_bus_last <= (others => 'Z');
                         data_bus_valid <= 'Z';
                         data_bus <= (others => 'Z');
                         data_bus_dest <= (others => 'Z');
-                end case;
-            end if;
+                    end if;
+                when others =>
+                    data_bus_last <= (others => 'Z');
+                    data_bus_valid <= 'Z';
+                    data_bus <= (others => 'Z');
+                    data_bus_dest <= (others => 'Z');
+            end case;
         end if;
     end process;
     

@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity tanh_arbiter is
+entity tanh_arbiter_hp is
     port (
         aclk : in std_logic;
 
@@ -23,16 +23,18 @@ entity tanh_arbiter is
         value_out_valid : out std_logic := '0';
         value_out_data : out std_logic_vector(15 downto 0) := (others => '0')
     );
-end tanh_arbiter;
+end tanh_arbiter_hp;
 
-architecture behav of tanh_arbiter is
+architecture behav of tanh_arbiter_hp is
 begin 
     process (aclk) is
         variable sign : std_logic;
-        variable exponent : unsigned(7 downto 0);
-        variable fraction : unsigned(6 downto 0);
+        variable exponent : unsigned(4 downto 0);
+        variable fraction : unsigned(9 downto 0);
 
         variable temp_value : std_logic_vector(15 downto 0);
+
+        constant bias_offset : natural := 15; -- 15
 
         variable slope_out_valid_v : std_logic := '0';
         variable slope_out_data_v : std_logic_vector(15 downto 0) := (others => '0');
@@ -50,12 +52,12 @@ begin
         if in_valid = '1' then
             -- Get sign, exponent and fraction
             sign := in_data(15);
-            exponent := unsigned(in_data(14 downto 7));
-            fraction := unsigned(in_data(6 downto 0));
+            exponent := unsigned(in_data(14 downto 10));
+            fraction := unsigned(in_data(9 downto 0));
 
-            if exponent >= x"81" then -- [-inf, -4.0]
+            if exponent >= to_unsigned(2 + bias_offset, 5) then -- [-inf, -4.0]
                 value_out_data(15) <= sign;
-                temp_value := x"3F80"; -- 1.0
+                temp_value := x"3C00"; -- 1.0
                 value_out_data(14 downto 0) <= temp_value(14 downto 0);
                 value_out_valid_v := '1';
 
@@ -67,21 +69,21 @@ begin
 
                 input_out_data_v := (others => '0');
                 input_out_valid_v := '0';
-            elsif exponent = x"80" then
+            elsif exponent = to_unsigned(1 + bias_offset, 5) then -- [-4.0, -2.0]
                 offset_out_data(15) <= sign;
 
-                if fraction >= x"20" then -- [-4.0, -2.5]
-                    slope_out_data_v := x"3BF2"; -- 0.00739
+                if fraction >= x"200" then -- [-4.0, -2.5]
+                    slope_out_data_v := x"1F92"; -- 0.007393
                     slope_out_valid_v := '1';
 
-                    temp_value := x"3F78"; -- 0.97183
+                    temp_value := x"3BC6"; -- 0.97183
                     offset_out_data_v(14 downto 0) := temp_value(14 downto 0);
                     offset_out_valid_v := '1';
                 else -- [-2.5, -1.75]
-                    slope_out_data_v := x"3D66"; -- 0.05619
+                    slope_out_data_v := x"2B31"; -- 0.05619
                     slope_out_valid_v := '1';
 
-                    temp_value := x"3F59"; -- 0.84983
+                    temp_value := x"3ACC"; -- 0.84983
                     offset_out_data_v(14 downto 0) := temp_value(14 downto 0);
                     offset_out_valid_v := '1';
                 end if;
@@ -91,28 +93,28 @@ begin
 
                 value_out_data_v := (others => '0');
                 value_out_valid_v := '0';
-            elsif exponent = x"7F" then
+            elsif exponent = to_unsigned(0 + bias_offset, 5) then -- [-2.0, -1.0]
                 offset_out_data(15) <= sign;
 
-                if fraction >= x"60" then -- [-2.5, -1.75]
-                    slope_out_data_v := x"3D66"; -- 0.05619
+                if fraction >= x"400" then -- [-2.5, -1.75]
+                    slope_out_data_v := x"2B31"; -- 0.05619
                     slope_out_valid_v := '1';
 
-                    temp_value := x"3F59"; -- 0.84983
+                    temp_value := x"3ACC"; -- 0.84983
                     offset_out_data_v(14 downto 0) := temp_value(14 downto 0);
                     offset_out_valid_v := '1';
-                elsif fraction >= x"20" then -- [-1.75, -1.25]
-                    slope_out_data_v := x"3E40"; -- 0.18788
+                elsif fraction >= x"100" then -- [-1.75, -1.25]
+                    slope_out_data_v := x"3203"; -- 0.18788
                     slope_out_valid_v := '1';
 
-                    temp_value := x"3F1E"; -- 0.61937
+                    temp_value := x"38F4"; -- 0.61937
                     offset_out_data_v(14 downto 0) := temp_value(14 downto 0);
                     offset_out_valid_v := '1';
                 else -- [-1.25, -1.0]
-                    slope_out_data_v := x"3EB8"; -- 0.36098
+                    slope_out_data_v := x"35C6"; -- 0.36098
                     slope_out_valid_v := '1';
 
-                    temp_value := x"3ECE"; -- 0.40300
+                    temp_value := x"3672"; -- 0.40300
                     offset_out_data_v(14 downto 0) := temp_value(14 downto 0);
                     offset_out_valid_v := '1';
                 end if;
@@ -122,21 +124,21 @@ begin
 
                 value_out_data_v := (others => '0');
                 value_out_valid_v := '0';
-            elsif exponent = x"7E" then 
+            elsif exponent = to_unsigned(-1 + bias_offset, 5) then  -- [-1.0, -0.5]
                 offset_out_data(15) <= sign;
 
-                if fraction >= x"40" then -- [-1.0, -0.75]
-                    slope_out_data_v := x"3F00"; -- 0.5
+                if fraction >= x"200" then -- [-1.0, -0.75]
+                    slope_out_data_v := x"3801"; -- 0.5
                     slope_out_valid_v := '1';
 
-                    temp_value := x"3E86"; -- 0.26316
+                    temp_value := x"3435"; -- 0.26316
                     offset_out_data_v(14 downto 0) := temp_value(14 downto 0);
                     offset_out_valid_v := '1';
                 else -- [-0.75, -0.5]
-                    slope_out_data_v := x"3F30"; -- 0.6875
+                    slope_out_data_v := x"3987"; -- 0.6875
                     slope_out_valid_v := '1';
 
-                    temp_value := x"3DF6"; -- 0.12011
+                    temp_value := x"2FB2"; -- 0.12011
                     offset_out_data_v(14 downto 0) := temp_value(14 downto 0);
                     offset_out_valid_v := '1';
                 end if;
@@ -146,12 +148,12 @@ begin
 
                 value_out_data_v := (others => '0');
                 value_out_valid_v := '0';
-            elsif exponent = x"7D" then -- [-0.5, -0.25]
-                slope_out_data_v := x"3F5F"; -- 0.87109
+            elsif exponent = to_unsigned(-2 + bias_offset, 5) then -- [-0.5, -0.25]
+                slope_out_data_v := x"3AFD"; -- 0.87109
                 slope_out_valid_v := '1';
 
                 offset_out_data(15) <= sign;
-                temp_value := x"3CEE"; -- 0.02905
+                temp_value := x"2772"; -- 0.02905
                 offset_out_data_v(14 downto 0) := temp_value(14 downto 0);
                 offset_out_valid_v := '1';
 
@@ -161,7 +163,7 @@ begin
                 value_out_data_v := (others => '0');
                 value_out_valid_v := '0';
             else -- [-0.25, 0.25]
-                slope_out_data_v := x"3F80"; -- 1.0
+                slope_out_data_v := x"3C00"; -- 1.0
                 slope_out_valid_v := '1';
 
                 offset_out_data_v := (others => '0');

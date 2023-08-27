@@ -12,6 +12,8 @@ entity pe_block is
         s_axis_pe_valid : in std_logic;
         s_axis_pe_last : in std_logic;
 
+        post_allowed : in std_logic;
+
         s_axis_data_in_data : in std_logic_vector(15 downto 0);
         s_axis_hidden_in_data : in std_logic_vector(15 downto 0);
 
@@ -47,8 +49,10 @@ architecture behav of pe_block is
             clk     : in std_logic;
 
             s_axis_pe_ready : out std_logic := '0';
-            s_axis_pe_valid : in std_logic := '0';
-            s_axis_pe_last : in std_logic := '0';
+            s_axis_pe_valid : in std_logic;
+            s_axis_pe_last : in std_logic;
+
+            post_allowed : in std_logic;
 
             -- input
             s_axis_data_in : in std_logic_vector(15 downto 0);
@@ -140,6 +144,7 @@ begin
     process(clk)
         variable write_counter : natural range 0 to 11 := 0;
         variable c_out_valid_check : boolean := true;
+        variable write_corrected : natural range 0 to 11 := 0;
     begin
         if rising_edge(clk) then
             if s_axis_c_and_bias_valid = '1' then
@@ -267,12 +272,15 @@ begin
                     when WRITE_C_T =>
                             if s_axis_c_and_bias_bus_ready = '1' then
                                 c_out_valid_check := true;
-                                for i in write_counter to write_counter + 31 loop
-                                    if c_t_out_valid(i) = '0' then
-                                        c_out_valid_check := false;
+                                for i in 0 to 383 loop
+                                    if i >= write_counter * 32 and i < (write_counter + 1) * 32 then
+                                        if c_t_out_valid(i) = '0' then
+                                            c_out_valid_check := false;
+                                        end if;
+
+                                        write_corrected := i - write_counter * 32;
+                                        s_axis_c_and_bias_data(16 * write_corrected + 15 downto 16 * write_corrected) <= c_t_out_data(write_corrected);
                                     end if;
-                                    
-                                    s_axis_c_and_bias_data(16 * i + 15 downto 16 * i) <= c_t_out_data(i);
                                 end loop;
 
                                 if c_out_valid_check = true then
@@ -358,65 +366,83 @@ begin
     end process;
 
     -- Generate 384 components
-    gen_pe : for i in 0 to 383 generate
-        lstm_pe_bf16_inst : lstm_pe_bf16
-            port map (
-                clk     => clk,
+    -- gen_pe : for i in 0 to 383 generate
+    --     lstm_pe_bf16_inst : lstm_pe_bf16
+    --         port map (
+    --             clk     => clk,
         
-                -- input
-                s_axis_pe_ready => pes_ready(i),
-                s_axis_pe_valid => s_axis_pe_valid,
-                s_axis_pe_last => s_axis_pe_last,
+    --             -- input
+    --             s_axis_pe_ready => pes_ready(i),
+    --             s_axis_pe_valid => s_axis_pe_valid,
+    --             s_axis_pe_last => s_axis_pe_last,
 
-                s_axis_data_in => s_axis_data_in_data,
-                s_axis_hidden_data => s_axis_hidden_in_data,
+    --             post_allowed => post_allowed,
 
-                -- weights
-                s_axis_weight_i_input_data => s_axis_weight_i_input_data(16 * i + 15 downto 16 * i),
-                s_axis_weight_i_hidden_data => s_axis_weight_i_hidden_data(16 * i + 15 downto 16 * i),
+    --             s_axis_data_in => s_axis_data_in_data,
+    --             s_axis_hidden_data => s_axis_hidden_in_data,
 
-                s_axis_weight_f_input_data => s_axis_weight_f_input_data(16 * i + 15 downto 16 * i),
-                s_axis_weight_f_hidden_data => s_axis_weight_f_hidden_data(16 * i + 15 downto 16 * i),
+    --             -- weights
+    --             s_axis_weight_i_input_data => s_axis_weight_i_input_data(16 * i + 15 downto 16 * i),
+    --             s_axis_weight_i_hidden_data => s_axis_weight_i_hidden_data(16 * i + 15 downto 16 * i),
 
-                s_axis_weight_g_input_data => s_axis_weight_g_input_data(16 * i + 15 downto 16 * i),
-                s_axis_weight_g_hidden_data => s_axis_weight_g_hidden_data(16 * i + 15 downto 16 * i),
+    --             s_axis_weight_f_input_data => s_axis_weight_f_input_data(16 * i + 15 downto 16 * i),
+    --             s_axis_weight_f_hidden_data => s_axis_weight_f_hidden_data(16 * i + 15 downto 16 * i),
 
-                s_axis_weight_o_input_data => s_axis_weight_o_input_data(16 * i + 15 downto 16 * i),
-                s_axis_weight_o_hidden_data => s_axis_weight_o_hidden_data(16 * i + 15 downto 16 * i),
+    --             s_axis_weight_g_input_data => s_axis_weight_g_input_data(16 * i + 15 downto 16 * i),
+    --             s_axis_weight_g_hidden_data => s_axis_weight_g_hidden_data(16 * i + 15 downto 16 * i),
 
-                -- output
-                m_axis_hidden_out_data => m_axis_hidden_out_data(16 * i + 15 downto 16 * i),
-                m_axis_hidden_out_valid => output_valid(i),
-                m_axis_hidden_out_ready => m_axis_hidden_out_ready,
+    --             s_axis_weight_o_input_data => s_axis_weight_o_input_data(16 * i + 15 downto 16 * i),
+    --             s_axis_weight_o_hidden_data => s_axis_weight_o_hidden_data(16 * i + 15 downto 16 * i),
 
-                -- c_t and bias update
-                s_axis_c_in_and_bias_ready => c_and_bias_in_ready(i),
+    --             -- output
+    --             m_axis_hidden_out_data => m_axis_hidden_out_data(16 * i + 15 downto 16 * i),
+    --             m_axis_hidden_out_valid => output_valid(i),
+    --             m_axis_hidden_out_ready => m_axis_hidden_out_ready,
+
+    --             -- c_t and bias update
+    --             s_axis_c_in_and_bias_ready => c_and_bias_in_ready(i),
                 
-                s_axis_c_t_in_data => c_t_in_data(i),
-                s_axis_c_t_in_valid => c_t_in_valid(i),
+    --             s_axis_c_t_in_data => c_t_in_data(i),
+    --             s_axis_c_t_in_valid => c_t_in_valid(i),
 
-                s_axis_c_t_out_data => c_t_out_data(i),
-                s_axis_c_t_out_valid => c_t_out_valid(i),
-                s_axis_c_t_out_ready => c_t_out_ready(i),
+    --             s_axis_c_t_out_data => c_t_out_data(i),
+    --             s_axis_c_t_out_valid => c_t_out_valid(i),
+    --             s_axis_c_t_out_ready => c_t_out_ready(i),
 
-                s_axis_i_bias_data => i_bias_data(i),
-                s_axis_i_bias_valid => i_bias_valid(i),
+    --             s_axis_i_bias_data => i_bias_data(i),
+    --             s_axis_i_bias_valid => i_bias_valid(i),
 
-                s_axis_f_bias_data => f_bias_data(i),
-                s_axis_f_bias_valid => f_bias_valid(i),
+    --             s_axis_f_bias_data => f_bias_data(i),
+    --             s_axis_f_bias_valid => f_bias_valid(i),
 
-                s_axis_g_bias_data => g_bias_data(i),
-                s_axis_g_bias_valid => g_bias_valid(i),
+    --             s_axis_g_bias_data => g_bias_data(i),
+    --             s_axis_g_bias_valid => g_bias_valid(i),
 
-                s_axis_o_bias_data => o_bias_data(i),
-                s_axis_o_bias_valid => o_bias_valid(i)
+    --             s_axis_o_bias_data => o_bias_data(i),
+    --             s_axis_o_bias_valid => o_bias_valid(i)
 
-            );
-    end generate gen_pe;
+    --         );
+    -- end generate gen_pe;
     
     -- And reduce the ready signals
-    s_axis_pe_ready <= '1' when pes_ready = (others => '1') else '0';
+    process (pes_ready)
+        variable temp : std_logic := '1';
+    begin
+        for i in 0 to 383 loop
+            temp := temp and pes_ready(i);
+        end loop;
+
+        s_axis_pe_ready <= temp;
+    end process;
     
     -- And reduce the valid signals
-    m_axis_hidden_out_valid <= '1' when output_valid = (others => '1') else '0';
+    process (output_valid)
+        variable temp : std_logic := '1';
+    begin
+        for i in 0 to 383 loop
+            temp := temp and output_valid(i);
+        end loop;
+
+        m_axis_hidden_out_valid <= temp;
+    end process;
 end architecture behav;
